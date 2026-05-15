@@ -106,3 +106,36 @@ def test_to_dict_serializes():
     d = result.to_dict()
     assert d["python_version"] == "3.11"
     assert isinstance(d["packages"], list)
+    
+
+# ── JAX CUDA Support Matrix Tests ─────────────────────────────────────────────
+
+def test_jax_cuda118_supported():
+    """JAX 0.4.14 supports CUDA 11.8."""
+    from app.compatibility.matrix.cuda import get_supported_cuda_for_framework
+    cuda_versions = get_supported_cuda_for_framework("jax", "0.4.14")
+    assert "11.8" in cuda_versions
+
+def test_jax_cuda121_supported():
+    """JAX 0.4.28 supports CUDA 12.1."""
+    from app.compatibility.matrix.cuda import get_supported_cuda_for_framework
+    cuda_versions = get_supported_cuda_for_framework("jax", "0.4.28")
+    assert "12.1" in cuda_versions
+
+def test_jax_cuda124_supported():
+    """JAX 0.4.28 supports CUDA 12.4."""
+    from app.compatibility.matrix.cuda import get_supported_cuda_for_framework
+    cuda_versions = get_supported_cuda_for_framework("jax", "0.4.28")
+    assert "12.4" in cuda_versions
+
+def test_jax_cuda118_dropped_in_0426():
+    """JAX 0.4.26 dropped CUDA 11.8 support."""
+    from app.compatibility.matrix.cuda import get_supported_cuda_for_framework
+    cuda_versions = get_supported_cuda_for_framework("jax", "0.4.26")
+    assert "11.8" not in cuda_versions
+
+def test_jax_unknown_version_returns_empty():
+    """Unknown JAX version should return empty list, not crash."""
+    from app.compatibility.matrix.cuda import get_supported_cuda_for_framework
+    cuda_versions = get_supported_cuda_for_framework("jax", "0.0.0")
+    assert cuda_versions == []
