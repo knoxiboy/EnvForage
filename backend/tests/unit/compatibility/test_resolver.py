@@ -106,7 +106,7 @@ def test_to_dict_serializes():
     d = result.to_dict()
     assert d["python_version"] == "3.11"
     assert isinstance(d["packages"], list)
-    
+
 
 # ── JAX CUDA Support Matrix Tests ─────────────────────────────────────────────
 
