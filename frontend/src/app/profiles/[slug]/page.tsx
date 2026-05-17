@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { api } from "../../services/api";
-import { Profile } from "../../types";
+import { api } from "../../../services/api";
+import { Profile } from "../../../types";
 import { ArrowLeft, Box, CheckCircle, Cpu, ShieldAlert, Terminal } from "lucide-react";
 
 export default function ProfileDetailPage() {
