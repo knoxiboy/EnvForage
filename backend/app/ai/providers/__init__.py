@@ -9,7 +9,7 @@ def get_provider() -> LLMProvider:
     The provider is determined by ``ENVFORGE_LLM_PROVIDER`` env var:
         - ``mock``       → deterministic responses for testing
         - ``openrouter`` → routes to 100+ models via OpenRouter API
-        - ``openai``     → direct OpenAI API (not yet implemented)
+        - ``openai``     → direct OpenAI API
         - ``ollama``     → local inference (not yet implemented)
 
     Returns:
@@ -37,10 +37,14 @@ def get_provider() -> LLMProvider:
         )
 
     if provider_name == "openai":
-        raise LLMProviderError(
-            "openai",
-            "OpenAI direct provider is not yet implemented. "
-            "Use 'openrouter' with model 'openai/gpt-4o' instead.",
+        from app.ai.providers.openai import OpenAIProvider
+        # Safely extract dynamic configuration values from environment context settings
+        api_key = getattr(settings, "openai_api_key", None)
+        base_url = getattr(settings, "openai_base_url", "https://api.openai.com/v1")
+        
+        return OpenAIProvider(
+            api_key=api_key,
+            base_url=base_url
         )
 
     if provider_name == "ollama":
