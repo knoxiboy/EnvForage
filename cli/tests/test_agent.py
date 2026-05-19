@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from unittest import runner
+from pydoc import cli
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -270,3 +272,138 @@ class TestReportBuilder:
         assert "agent_version" in parsed
         assert "os" in parsed
         assert "gpus" in parsed
+
+def test_sarif_output_structure():
+    """Test that to_sarif() returns valid SARIF 2.1.0 structure."""
+    from envforge_agent.schemas import (
+        DiagnosticReport, OSInfo, CPUInfo, RAMInfo, CUDAInfo
+    )
+    report = DiagnosticReport(
+        os=OSInfo(name="Ubuntu", version="22.04", architecture="x86_64"),
+        cpu=CPUInfo(brand="Intel i9", cores=8, threads=16),
+        ram=RAMInfo(total_gb=32.0, available_gb=16.0),
+        gpus=[],
+        cuda=CUDAInfo(version=None),
+        python_installations=[],
+        active_python=None,
+    )
+    sarif = report.to_sarif()
+
+    assert sarif["version"] == "2.1.0"
+    assert "$schema" in sarif
+    assert "runs" in sarif
+    assert len(sarif["runs"]) == 1
+
+    run = sarif["runs"][0]
+    assert run["tool"]["driver"]["name"] == "envforge-agent"
+    assert "results" in run
+
+    rule_ids = [r["ruleId"] for r in run["results"]]
+    assert "ENV001" in rule_ids
+    assert "ENV002" in rule_ids
+    assert "ENV003" in rule_ids
+
+
+def test_sarif_no_issues_when_healthy():
+    """Test that a healthy environment produces no SARIF results."""
+    from envforge_agent.schemas import (
+        DiagnosticReport, OSInfo, CPUInfo, RAMInfo,
+        CUDAInfo, GPUInfo, PythonInfo
+    )
+    report = DiagnosticReport(
+        os=OSInfo(name="Ubuntu", version="22.04", architecture="x86_64"),
+        cpu=CPUInfo(brand="Intel i9", cores=8, threads=16),
+        ram=RAMInfo(total_gb=32.0, available_gb=16.0),
+        gpus=[GPUInfo(name="NVIDIA RTX 4090", vram_gb=24.0)],
+        cuda=CUDAInfo(version="12.1"),
+        python_installations=[],
+        active_python=PythonInfo(version="3.11.9", path="/usr/bin/python3"),
+    )
+    sarif = report.to_sarif()
+    assert sarif["runs"][0]["results"] == []
+
+
+class TestVerifyCommand:
+    """Tests for the envforge verify CLI command."""
+
+    @patch("subprocess.run")
+    def test_verify_pass_no_profile(self, mock_run: MagicMock) -> None:
+        from envforge_agent.cli import cli
+        from click.testing import CliRunner
+
+        # Mock the subprocess execution
+        mock_proc = MagicMock()
+        mock_proc.returncode = 0
+        mock_proc.stdout = '{"import_ok": true, "cuda_ok": false, "error": null}'
+        mock_run.return_value = mock_proc
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["verify", "-q"])
+
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data["status"] == "PASS"
+        assert "imported successfully" in data["message"]
+        assert "CPU only" in data["message"]
+
+    @patch("subprocess.run")
+    def test_verify_pass_cuda_profile(self, mock_run: MagicMock) -> None:
+        from envforge_agent.cli import cli
+        from click.testing import CliRunner
+
+        # Mock the subprocess execution
+        mock_proc = MagicMock()
+        mock_proc.returncode = 0
+        mock_proc.stdout = '{"import_ok": true, "cuda_ok": true, "error": null}'
+        mock_run.return_value = mock_proc
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["verify", "--profile", "pytorch-cuda", "-q"])
+
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data["status"] == "PASS"
+        assert "with CUDA support" in data["message"]
+
+    @patch("subprocess.run")
+    def test_verify_fail_import(self, mock_run: MagicMock) -> None:
+        from envforge_agent.cli import cli
+        from click.testing import CliRunner
+
+        # Mock the subprocess execution
+        mock_proc = MagicMock()
+        mock_proc.returncode = 0
+        mock_proc.stdout = '{"import_ok": false, "cuda_ok": false, "error": "ModuleNotFoundError: No module named \'torch\'"}'
+        mock_run.return_value = mock_proc
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["verify", "-q"])
+
+        assert result.exit_code == 1
+        data = json.loads(result.output)
+        assert data["status"] == "FAIL"
+        assert "PyTorch import failed" in data["message"]
+        assert "ModuleNotFoundError" in data["error"]
+
+    @patch("subprocess.run")
+    def test_verify_fail_cuda_on_gpu_profile(self, mock_run: MagicMock) -> None:
+        from envforge_agent.cli import cli
+        from click.testing import CliRunner
+
+        # Mock the subprocess execution
+        mock_proc = MagicMock()
+        mock_proc.returncode = 0
+        mock_proc.stdout = '{"import_ok": true, "cuda_ok": false, "error": null}'
+        mock_run.return_value = mock_proc
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["verify", "--profile", "pytorch-cuda", "-q"])
+
+        assert result.exit_code == 1
+        data = json.loads(result.output)
+        assert data["status"] == "FAIL"
+        assert "CUDA not available" in data["message"]
+
+        
+
+            

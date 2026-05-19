@@ -48,8 +48,8 @@ async def troubleshoot(
                     # Format as standard SSE
                     yield f"data: {chunk}\n\n"
             except Exception as exc:
-                logger.error("Error in troubleshoot stream generator: %s", exc)
-                yield f"data: {{\"error\": \"STREAM_ERROR\", \"message\": \"{str(exc)}\"}}\n\n"
+                logger.exception("Error in troubleshoot stream generator")
+                yield "data: {\"error\": \"STREAM_ERROR\", \"message\": \"An internal error occurred while streaming analysis.\"}\n\n"
 
         return StreamingResponse(
             event_generator(),

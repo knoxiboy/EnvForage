@@ -6,18 +6,34 @@ Usage:
     python -m app.services.seed_service
 """
 import asyncio
-import datetime
-import sys
 from pathlib import Path
 
 import yaml
+from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import AsyncSessionLocal
 from app.models.profile import EnvironmentProfile, ProfilePackage
+from app.schemas.seed_profile import ProfileSeedSchema
 
 SEEDS_DIR = Path(__file__).parent.parent.parent / "seeds"
+
+
+def _format_validation_errors(exc: ValidationError) -> str:
+    parts: list[str] = []
+    for error in exc.errors():
+        location = ".".join(str(part) for part in error["loc"])
+        parts.append(f"{location}: {error['msg']}")
+    return "; ".join(parts)
+
+
+def _profile_ref(raw: object, index: int) -> str:
+    if isinstance(raw, dict):
+        slug = raw.get("slug")
+        if slug:
+            return str(slug)
+    return f"index={index}"
 
 
 async def seed_profiles(db: AsyncSession) -> None:
@@ -27,60 +43,92 @@ async def seed_profiles(db: AsyncSession) -> None:
         print(f"[seed] profiles.yaml not found at {profiles_file}")
         return
 
-    data = yaml.safe_load(profiles_file.read_text(encoding="utf-8"))
-    profiles_data = data.get("profiles", [])
+    try:
+        raw_text = profiles_file.read_text(encoding="utf-8")
+        data = yaml.safe_load(raw_text)
+    except (OSError, UnicodeDecodeError) as exc:
+        print(f"[seed] Failed to read profiles.yaml: {exc}")
+        return
+    except yaml.YAMLError as exc:
+        print(f"[seed] Failed to parse profiles.yaml: {exc}")
+        return
+
+    if data is None:
+        print("[seed] profiles.yaml is empty")
+        return
+
+    if not isinstance(data, dict):
+        print(
+            f"[seed] Invalid profiles.yaml: expected mapping at root, "
+            f"got {type(data).__name__}"
+        )
+        return
+
+    profiles_data = data.get("profiles")
+    if not isinstance(profiles_data, list):
+        print("[seed] Invalid profiles.yaml: 'profiles' must be a list")
+        return
+
     seeded = 0
     skipped = 0
+    invalid = 0
 
-    for p in profiles_data:
-        # Check if profile already exists (idempotent)
+    for index, raw_profile in enumerate(profiles_data):
+        profile_ref = _profile_ref(raw_profile, index)
+        try:
+            profile_data = ProfileSeedSchema.model_validate(raw_profile)
+        except ValidationError as exc:
+            print(
+                f"[seed] Skipping profile '{profile_ref}': "
+                f"{_format_validation_errors(exc)}"
+            )
+            invalid += 1
+            continue
+
         result = await db.execute(
-            select(EnvironmentProfile).where(EnvironmentProfile.slug == p["slug"])
+            select(EnvironmentProfile).where(
+                EnvironmentProfile.slug == profile_data.slug
+            )
         )
         existing = result.scalar_one_or_none()
         if existing:
             skipped += 1
             continue
 
-        # Build profile
-        last_validated = None
-        if p.get("last_validated"):
-            lv = p["last_validated"]
-            if isinstance(lv, str):
-                last_validated = datetime.date.fromisoformat(lv)
-            elif isinstance(lv, datetime.date):
-                last_validated = lv
-
         profile = EnvironmentProfile(
-            slug=p["slug"],
-            name=p["name"],
-            description=p.get("description", "").strip(),
-            tags=p.get("tags", []),
-            os_support=p["os_support"],
-            cuda_required=p.get("cuda_required", False),
-            python_versions=p["python_versions"],
-            cuda_versions=p.get("cuda_versions") or [],
-            status=p.get("status", "ACTIVE"),
-            last_validated=last_validated,
+            slug=profile_data.slug,
+            name=profile_data.name,
+            description=profile_data.description,
+            tags=profile_data.tags,
+            os_support=profile_data.os_support,
+            cuda_required=profile_data.cuda_required,
+            python_versions=profile_data.python_versions,
+            cuda_versions=profile_data.cuda_versions,
+            status=profile_data.status,
+            last_validated=profile_data.last_validated,
         )
         db.add(profile)
-        await db.flush()  # Get profile.id
+        await db.flush()
 
-        # Build packages
-        for pkg in p.get("packages", []):
-            db.add(ProfilePackage(
-                profile_id=profile.id,
-                package_name=pkg["name"],
-                version_spec=pkg["version_spec"],
-                cuda_variant=pkg.get("cuda_variant"),
-                is_optional=pkg.get("is_optional", False),
-                install_order=pkg.get("install_order", 0),
-            ))
+        for pkg in profile_data.packages:
+            db.add(
+                ProfilePackage(
+                    profile_id=profile.id,
+                    package_name=pkg.name,
+                    version_spec=pkg.version_spec,
+                    cuda_variant=pkg.cuda_variant,
+                    is_optional=pkg.is_optional,
+                    install_order=pkg.install_order,
+                )
+            )
 
         seeded += 1
 
     await db.commit()
-    print(f"[seed] Profiles: {seeded} seeded, {skipped} already existed.")
+    print(
+        f"[seed] Profiles: {seeded} seeded, {skipped} already existed, "
+        f"{invalid} invalid (skipped)."
+    )
 
 
 async def run_all_seeds() -> None:

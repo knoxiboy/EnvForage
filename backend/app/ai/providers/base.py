@@ -1,6 +1,7 @@
 """Abstract base class for LLM providers."""
 from abc import ABC, abstractmethod
 from typing import AsyncIterator, TypeVar
+from pydantic import BaseModel
 
 from pydantic import BaseModel
 

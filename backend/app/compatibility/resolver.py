@@ -328,7 +328,7 @@ class CompatibilityResolver:
         override_version: str,
         python_version: str,
         cuda_version: str | None,
-        rocm_version: str | None,
+        rocm_version: str | None = None,
     ) -> ResolvedPackage:
         """Validate and apply a user-specified version override."""
         return self._resolve_exact_version(
