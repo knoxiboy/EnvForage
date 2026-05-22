@@ -2,7 +2,6 @@
 Tests for GET /api/v1/compatibility/* endpoints.
 Issue #85 — Expose Compatibility Matrices via REST API.
 """
-import pytest
 from fastapi.testclient import TestClient
 from app.main import app
 
