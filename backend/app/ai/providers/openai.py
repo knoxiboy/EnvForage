@@ -2,6 +2,8 @@ import asyncio
 import json
 import logging
 from collections.abc import AsyncIterator
+from datetime import UTC, datetime
+from email.utils import parsedate_to_datetime
 from typing import TypeVar
 
 import httpx
@@ -88,14 +90,11 @@ class OpenAIProvider(LLMProvider):
 
                 return response_model.model_validate_json(content)
             except httpx.HTTPStatusError as e:
-                raise LLMProviderError(
-                    "openai", f"OpenAI API error occurred: {e.response.text}"
-                )
+                raise LLMProviderError("openai", f"OpenAI API error occured: {e.response.text}")
+            except LLMProviderError:
+                raise
             except Exception as e:
-                raise LLMProviderError(
-                    "openai",
-                    f"Unexpected connection error under OpenAI provider: {str(e)}",
-                )
+                raise LLMProviderError("openai", f"Unexpected connection error under OpenAI provider: {str(e)}",) from e
 
     def stream(
         self,
@@ -140,12 +139,30 @@ class OpenAIProvider(LLMProvider):
                             json=payload,
                             headers=self.headers,
                         ) as response:
+
                             if response.status_code == 429:
                                 retry_after = response.headers.get("Retry-After")
-                                if retry_after and retry_after.isdigit():
-                                    delay = int(retry_after)
-                                else:
-                                    delay = base_delay**attempt
+
+                                delay = None
+
+                                if retry_after:
+                                    if retry_after.isdigit():
+                                        delay = max(0, int(retry_after))
+                                    else:
+                                        try:
+                                            retry_at = parsedate_to_datetime(retry_after)
+                                            now = datetime.now(UTC)
+
+                                            delay = max(
+                                                0,
+                                                int((retry_at - now).total_seconds()),
+                                            )
+
+                                        except (TypeError, ValueError, OverflowError):
+                                            delay = None
+
+                                if delay is None:
+                                    delay = 2 ** attempt
 
                                 logger.warning(
                                     "OpenAI rate limited (429). Retrying in %s seconds... (Attempt %d/%d)",
@@ -169,23 +186,33 @@ class OpenAIProvider(LLMProvider):
                                 )
 
                             async for line in response.aiter_lines():
-                                if not line or not line.startswith("data: "):
+                                line = line.strip()
+
+                                if not line.startswith("data:"):
                                     continue
 
-                                data_str = line[6:].strip()
+                                data_str = line.removeprefix("data:").strip()
+
+                                if not data_str:
+                                    continue
+
                                 if data_str == "[DONE]":
                                     break
 
                                 try:
                                     data = json.loads(data_str)
-                                    choices = data.get("choices", [])
-                                    if choices:
-                                        delta = choices[0].get("delta", {})
-                                        content = delta.get("content", "")
-                                        if content:
-                                            yield content
                                 except json.JSONDecodeError:
+                                    logger.debug("Skipping malformed stream chunk: %s", data_str)
                                     continue
+
+                                choices = data.get("choices", [])
+
+                                if choices:
+                                    delta = choices[0].get("delta", {})
+                                    content = delta.get("content", "")
+
+                                    if content:
+                                        yield content
 
                             # Stream completed successfully, return to exit the generator loop
                             return
