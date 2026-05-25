@@ -12,7 +12,9 @@ def _map_os_to_target(report: DiagnosticReport) -> str:
 def _extract_python_version(report: DiagnosticReport) -> str:
     """Extract major.minor Python version from DiagnosticReport."""
     if report.active_python:
-        parts = report.active_python.version.split(".")
-        return f"{parts[0]}.{parts[1]}"
+        version = report.active_python.version
+        parts = version.split(".")
+        if len(parts) >= 2 and parts[0] and parts[1]:
+            return f"{parts[0]}.{parts[1]}"
     return "3.11"  # safe default
 

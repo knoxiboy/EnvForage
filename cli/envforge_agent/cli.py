@@ -5,6 +5,7 @@ Commands:
   envforge diagnose   Collect and display a DiagnosticReport
   envforge verify     Check if a profile is compatible with this system
   envforge fix        Generate a repair script from a saved report
+  envforge rollback   Restore a venv from a backup directory
 """
 from __future__ import annotations
 
@@ -73,7 +74,15 @@ def cli() -> None:
     help="Output diagnostics in SARIF 2.1.0 format for CI/CD pipeline integrations.",
 )
 
-def diagnose(output: str | None, send: bool, api_url: str, quiet: bool, sarif: bool) -> None:
+@click.option(
+    "--timeout", "-t",
+    type=int,
+    default=30,
+    show_default=True,
+    help="Timeout in seconds for each detector subprocess call. Default: 30s.",
+)
+
+def diagnose(output: str | None, send: bool, api_url: str, quiet: bool, sarif: bool, timeout: int) -> None:
     """
     Collect a full diagnostic report of this machine's ML environment.
 
@@ -87,7 +96,7 @@ def diagnose(output: str | None, send: bool, api_url: str, quiet: bool, sarif: b
             expand=False,
         ))
 
-    report = ReportBuilder().build()
+    report = ReportBuilder(timeout=timeout).build()
 
     if not quiet:
         _print_report_summary(report)
@@ -486,7 +495,111 @@ def fix(report: str, profile: str, api_url: str, dry_run: bool) -> None:
         err_console.print(f"API error {e.response.status_code}: {e.response.text}")
         sys.exit(1)
 
+# ── envforge rollback ──────────────────────────────────────────────────────────
 
+@cli.command("rollback")
+def rollback() -> None:
+    """
+    Restore a virtual environment from a backup created by repair_venv_recreate.
+
+    Scans the current directory for folders matching *_backup_* and prompts
+    the user to select one to restore via Rich interactive prompt.
+    """
+    import glob
+    import shutil
+    import os
+
+    def _is_venv_backup(p: str) -> bool:
+        path = Path(p)
+        return path.is_dir() and (path / "pyvenv.cfg").exists()
+
+    backups = sorted(
+        p
+        for p in (glob.glob("*_backup_*") + glob.glob(".*_backup_*"))
+        if _is_venv_backup(p)
+    )
+
+    if not backups:
+        err_console.print("[ERROR] No backup directories found in the current directory.")
+        err_console.print("  Hint: Backups are created by 'envforge fix' and named like '.venv_backup_20260524'.")
+        sys.exit(1)
+
+    console.print(Panel(
+        f"[bold cyan]EnvForge Rollback[/] v{__version__}\n"
+        "[dim]Restoring virtual environment from backup...[/]",
+        expand=False,
+    ))
+
+    table = Table(box=box.ROUNDED, show_header=True, padding=(0, 1))
+    table.add_column("#", style="bold cyan", width=4)
+    table.add_column("Backup Directory", style="bold")
+
+    for i, b in enumerate(backups, start=1):
+        table.add_row(str(i), b)
+
+    console.print(table)
+
+    if len(backups) == 1:
+        chosen = backups[0]
+        console.print(f"[dim]Only one backup found — selecting:[/] [bold]{chosen}[/]")
+    else:
+        from rich.prompt import IntPrompt
+        idx = IntPrompt.ask(
+            "Select backup number to restore",
+            choices=[str(i) for i in range(1, len(backups) + 1)],
+        )
+        chosen = backups[idx - 1]
+
+    chosen_path = Path(chosen)
+    chosen_name = chosen_path.name
+    if "_backup_" not in chosen_name:
+        err_console.print(f"[ERROR] Invalid backup folder name structure: {chosen}")
+        sys.exit(1)
+
+    parts = chosen_name.rsplit("_backup_", 1)
+    original_name = parts[0]
+    if not original_name:
+        err_console.print(f"[ERROR] Could not determine original virtual environment name: {chosen_name}")
+        sys.exit(1)
+
+    original = str(chosen_path.with_name(original_name))
+
+    console.print(f"\n[yellow]This will replace '[bold]{original}[/]' with '[bold]{chosen}[/]'[/]")
+
+    from rich.prompt import Confirm
+    if not Confirm.ask("Proceed with rollback?"):
+        console.print("[dim]Rollback cancelled.[/]")
+        sys.exit(0)
+
+    temp_original = None
+    original_path = Path(original)
+    try:
+        if original_path.exists():
+            temp_original = Path(str(original_path) + f"_rollback_tmp_{os.getpid()}")
+            if temp_original.exists():
+                shutil.rmtree(temp_original)
+            original_path.rename(temp_original)
+
+        shutil.copytree(chosen, original)
+        
+        if temp_original and temp_original.exists():
+            shutil.rmtree(temp_original)
+            
+        console.print(f"\n[green][+][/] Rollback complete. '[bold]{original}[/]' restored from '[bold]{chosen}[/]'")
+
+    except Exception as e:
+        if temp_original and temp_original.exists():
+            try:
+                if original_path.exists():
+                    shutil.rmtree(original_path)
+                temp_original.rename(original_path)
+            except Exception as restore_err:
+                err_console.print(f"[WARNING] Failed to restore original directory: {restore_err}")
+        elif original_path.exists():
+            shutil.rmtree(original_path, ignore_errors=True)
+        err_console.print(f"[ERROR] Rollback failed: {e}")
+        sys.exit(1)
+    
 @cli.command("troubleshoot")
 @click.option(
     "--api-url",
@@ -654,5 +767,3 @@ def troubleshoot(api_url: str) -> None:
         err_console.print(
             f"[ERROR] Unexpected error: {exc}"
         )
-
-        sys.exit(1)
