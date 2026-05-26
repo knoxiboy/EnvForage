@@ -15,7 +15,7 @@ OutputFormat = Literal[
     "devcontainer.json",
     ".gitignore",
     "pyproject.toml",
-    "poetry.toml"
+    "pyproject.poetry.toml"
 ]
 
 class GenerationRequest(BaseModel):

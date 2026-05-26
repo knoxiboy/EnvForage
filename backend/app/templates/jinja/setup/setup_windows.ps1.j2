@@ -28,7 +28,12 @@ if (-not (Get-Command micromamba -ErrorAction SilentlyContinue)) {
     $MicromambaDir = "$env:USERPROFILE\.local\bin"
     New-Item -ItemType Directory -Force -Path $MicromambaDir | Out-Null
     Invoke-RestMethod -Uri https://micro.mamba.pm/api/micromamba/win-64/latest -OutFile "$env:TEMP\micromamba.tar.bz2"
-    tar -xjf "$env:TEMP\micromamba.tar.bz2" -C $MicromambaDir Library/bin/micromamba.exe
+    tar -xjf "$env:TEMP\micromamba.tar.bz2" -C "$MicromambaDir" Library/bin/micromamba.exe
+    $ExtractedMicromamba = Join-Path $MicromambaDir "Library\bin\micromamba.exe"
+    $MicromambaExe = Join-Path $MicromambaDir "micromamba.exe"
+    if (Test-Path $ExtractedMicromamba) {
+        Move-Item -Force -Path $ExtractedMicromamba -Destination $MicromambaExe
+    }
     $env:Path = "$MicromambaDir;$env:Path"
     Write-Info "micromamba installed."
 } else {

@@ -32,7 +32,7 @@ TEMPLATE_MAP: dict[str, str] = {
     "verify_opencv.sh":   "verify/verify_opencv.sh.j2",
     "environment.yml":    "config/environment.yml.j2",
     "pyproject.toml":     "config/pyproject.toml.j2",
-    "poetry.toml":       "config/poetry.toml.j2",
+    "pyproject.poetry.toml": "config/poetry.toml.j2",
     ".gitignore": "config/gitignore.j2",
 }
 

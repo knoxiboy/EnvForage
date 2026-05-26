@@ -29,7 +29,8 @@ error()   { echo -e "${RED}[ERROR]${NC} $1" >&2; exit 1; }
 info "Bootstrapping micromamba..."
 if ! command -v micromamba >/dev/null 2>&1; then
     mkdir -p ~/.local/bin
-    curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj -C ~/.local/bin/ bin/micromamba
+    curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj -f - --strip-components=1 -C ~/.local/bin/
+    chmod +x ~/.local/bin/micromamba
     export PATH="$HOME/.local/bin:$PATH"
     info "micromamba installed."
 else
