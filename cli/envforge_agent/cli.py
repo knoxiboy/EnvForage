@@ -645,3 +645,182 @@ def rollback() -> None:
             shutil.rmtree(original_path, ignore_errors=True)
         err_console.print(f"[ERROR] Rollback failed: {e}")
         sys.exit(1)
+    
+@cli.command("troubleshoot")
+@click.option(
+    "--api-url",
+    default="http://localhost:8000",
+    show_default=True,
+    envvar="ENVFORGE_API_URL",
+    help="Base URL of the EnvForge API.",
+)
+
+def troubleshoot(api_url: str) -> None:
+    """
+    Send diagnostic report to AI troubleshoot endpoint
+    and stream analysis results live to terminal.
+    """
+
+    console.print(Panel(
+        "[bold cyan]EnvForge AI Troubleshooter[/]\n"
+        "[dim]Analyzing environment issues...[/]",
+        expand=False,
+    ))
+
+    # Build diagnostic report
+    report = ReportBuilder().build()
+
+    url = f"{api_url.rstrip('/')}/api/v1/troubleshoot"
+
+    console.print(f"\n[bold]Connecting to[/] {url}\n")
+
+    try:
+        with httpx.stream(
+            "POST",
+            url,
+            json={
+                "diagnostic": report.model_dump(),
+                "user_description": "CLI troubleshoot request"
+            },
+            headers={
+                "Accept": "text/event-stream",
+            },
+            timeout=60,
+        ) as response:
+
+            response.raise_for_status()
+
+            console.print("[bold green]AI Troubleshooting Analysis[/]\n")
+
+            # Buffer streamed chunks
+            buffer = ""
+
+            for line in response.iter_lines():
+
+                if not line:
+                    continue
+
+                # SSE format: data: ...
+                if line.startswith("data: "):
+
+                    chunk = line.removeprefix("data: ")
+
+                    # accumulate streamed fragments
+                    buffer += chunk
+
+            # Parse completed JSON after stream ends
+            try:
+
+                parsed = json.loads(buffer)
+
+                if parsed.get("error"):
+
+                    err_console.print(
+                        f"[ERROR] {parsed.get('message', parsed['error'])}"
+                    )
+
+                    sys.exit(1)
+
+                # Root Cause
+                console.print("\n[bold red]Root Cause:[/]")
+                console.print(
+                    parsed.get("root_cause", "Unknown")
+                )
+
+                # Suggested Fixes
+                if parsed.get("suggested_fixes"):
+
+                    console.print(
+                        "\n[bold yellow]Suggested Fixes:[/]"
+                    )
+
+                    for fix in parsed["suggested_fixes"]:
+
+                        console.print(
+                            f"\n[bold]{fix['step']}.[/] {fix['title']}"
+                        )
+
+                        console.print(
+                            f"   Severity: {fix['severity']}"
+                        )
+
+                        console.print(
+                            f"   {fix['description']}"
+                        )
+
+                        if fix.get("safe_commands"):
+
+                            console.print("   Commands:")
+
+                            for cmd in fix["safe_commands"]:
+
+                                console.print(
+                                    f"    • {cmd}"
+                                )
+
+                # Confidence
+                if parsed.get("confidence") is not None:
+
+                    console.print(
+                        f"\n[bold cyan]Confidence:[/] "
+                        f"{parsed['confidence']}"
+                    )
+
+                console.print(
+                    "\n[bold green][+] Troubleshooting complete[/]"
+                )
+
+            except json.JSONDecodeError:
+
+                err_console.print(
+                    "[ERROR] Failed to parse streamed AI response."
+                )
+
+                sys.exit(1)
+
+    except httpx.ConnectError:
+
+        err_console.print(
+            f"[ERROR] Cannot connect to {url}"
+        )
+
+        err_console.print(
+            "Hint: Make sure the EnvForge backend API is running."
+        )
+
+        sys.exit(1)
+
+    except httpx.HTTPStatusError as exc:
+
+        err_console.print(
+            f"[ERROR] API returned {exc.response.status_code}"
+        )
+
+        try:
+
+            error_text = exc.response.read().decode()
+
+            err_console.print(error_text)
+
+        except Exception:
+
+            err_console.print(
+                "[ERROR] Unable to read error response body."
+            )
+
+        sys.exit(1)
+
+    except KeyboardInterrupt:
+
+        err_console.print(
+            "\n[!] Troubleshooting interrupted by user."
+        )
+
+        sys.exit(1)
+
+    except Exception as exc:
+
+        err_console.print(
+            f"[ERROR] Unexpected error: {exc}"
+        )
+        sys.exit(1)

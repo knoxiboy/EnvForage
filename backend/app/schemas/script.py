@@ -6,8 +6,17 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 OSTarget = Literal["LINUX", "WSL", "WIN"]
-OutputFormat = Literal["setup.sh", "setup.ps1", "requirements.txt", "Dockerfile", "docker-compose.yml", "devcontainer.json", "pyproject.toml", "poetry.toml"]
-
+OutputFormat = Literal[
+    "setup.sh",
+    "setup.ps1",
+    "requirements.txt",
+    "Dockerfile",
+    "docker-compose.yml",
+    "devcontainer.json",
+    ".gitignore",
+    "pyproject.toml",
+    "poetry.toml"
+]
 
 class GenerationRequest(BaseModel):
     """Request body for POST /scripts/generate."""
