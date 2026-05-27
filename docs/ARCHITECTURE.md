@@ -207,6 +207,9 @@ Internet → Render (Web Service)
 FastAPI → PostgreSQL (Supabase IPv4 Pooler)
 FastAPI → Redis (session cache, rate limiting — Phase 2)
 FastAPI → OpenRouter / LLM Provider (Phase 4)
+
+FastAPI → Kubernetes via Helm chart (`helm/envforge/`)
+         └── Deployment + Service + Ingress + ConfigMap + Redis
 ```
 
 ---

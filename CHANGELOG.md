@@ -160,3 +160,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Idempotent YAML seed service with 6 starter profiles (e.g., `pytorch-cuda`, `yolov8`).
 - AI Layer skeleton with mock provider and Pydantic schemas.
 - Comprehensive documentation suite (Architecture, ADRs, Workflows).
+
+### Added
+- **Helm Chart for Kubernetes Deployment:**
+  - Added `helm/envforge/` chart with templates for backend Deployment, Redis Deployment, Services, Ingress, and ConfigMap.
+  - Parameterized via `values.yaml` — image, ports, replicas, env vars, and Redis config are all overridable.
+  - Non-root `securityContext` (`runAsNonRoot: true`) applied to backend Deployment, consistent with Dockerfile hardening.
+  - Liveness and readiness probes configured on `/health`.

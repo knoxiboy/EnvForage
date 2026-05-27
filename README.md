@@ -36,7 +36,7 @@ A massive thank you to all the developers who have contributed code, resolved is
 ## 🎯 Project Overview
 
 **Deterministic logic > AI generation.**
-Because scripts affect real systems, EnvForge relies on a strictly deterministic **Compatibility Engine** to resolve versions. It never guesses package versions or writes destructive shell commands. 
+Because scripts affect real systems, EnvForge relies on a strictly deterministic **Compatibility Engine** to resolve versions. It never guesses package versions or writes destructive shell commands.
 
 EnvForge helps users:
 * Generate environment setup scripts (`setup.sh`, `setup.ps1`, `Dockerfile`)
@@ -85,6 +85,13 @@ git clone https://github.com/rishabh0510rishabh/EnvForage.git
 cd EnvForage
 docker-compose up -d
 ```
+
+### 3. Run the Backend (Kubernetes)
+```bash
+helm install envforge ./helm/envforge
+kubectl port-forward svc/envforge 8000:8000
+```
+
 The API is now running at `http://localhost:8000`.
 
 ### 3. Generate a Script
