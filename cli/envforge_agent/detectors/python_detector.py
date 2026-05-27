@@ -41,8 +41,13 @@ def sanitize_path(path):
         normalized_path = os.path.normcase(os.path.normpath(path))
         normalized_home = os.path.normcase(os.path.normpath(home_dir))
 
-        if normalized_path.startswith(normalized_home):
-            return path.replace(home_dir, "<USER_HOME>")
+        if (
+            normalized_path == normalized_home
+            or normalized_path.startswith(normalized_home + os.sep)
+        ):
+            relative_part = path[len(home_dir):]
+            return "<USER_HOME>" + relative_part
+
     except Exception:
         pass
 
