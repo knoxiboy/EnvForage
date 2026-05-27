@@ -158,25 +158,62 @@ class AITroubleshootService:
         db: AsyncSession,
     ) -> AsyncIterator[str]:
         """
-        Stream the AI troubleshooting response.
-        This method skips database persistence for individual tokens to
-        minimize latency, but still builds the full prompt and uses the
-        configured LLM provider in streaming mode.
+        Stream the AI troubleshooting response with safety validation.
+
+        All provider tokens are buffered until the response is complete, then
+        the full response is deserialised and validated through the safety
+        filter before any bytes are yielded to the caller. This matches the
+        safety guarantee of the non-streaming path.
         """
+        session_id = str(uuid.uuid4())
+        start_time = time.monotonic()
+        input_hash = self._hash_input(request)
+
         history = None
         if request.session_id:
             history = await self._fetch_session_history(db, request.session_id)
 
         user_message = self._prompt_builder.build(request, history=history)
         provider = get_provider()
+        provider_name = type(provider).__name__
 
-        logger.info("Starting troubleshoot stream (provider=%s)", type(provider).__name__)
+        logger.info("Starting troubleshoot stream (provider=%s)", provider_name)
 
+        chunks: list[str] = []
         async for chunk in provider.stream(
             system_prompt=TROUBLESHOOT_SYSTEM_PROMPT,
             user_message=user_message,
             response_model=TroubleshootResponse,
         ):
+            chunks.append(chunk)
+
+        full_response = "".join(chunks)
+
+        try:
+            llm_result = TroubleshootResponse.model_validate_json(full_response)
+            self._validate_response_safety(llm_result)
+        except SafetyViolationError as exc:
+            latency_ms = int((time.monotonic() - start_time) * 1000)
+            await self._log_audit(
+                db, session_id=None, input_hash=input_hash,
+                safety_passed=False, safety_violation=str(exc),
+                provider=provider_name, tokens_used=0, latency_ms=latency_ms,
+            )
+            logger.warning("Safety violation in streamed response: %s", exc)
+            yield (
+                '{"error":"SAFETY_VIOLATION",'
+                '"message":"Response blocked by safety filter."}'
+            )
+            return
+
+        latency_ms = int((time.monotonic() - start_time) * 1000)
+        await self._log_audit(
+            db, session_id=session_id, input_hash=input_hash,
+            safety_passed=True, safety_violation=None,
+            provider=provider_name, tokens_used=0, latency_ms=latency_ms,
+        )
+
+        for chunk in chunks:
             yield chunk
 
     async def _fetch_session_history(
