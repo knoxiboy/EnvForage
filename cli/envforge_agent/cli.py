@@ -25,6 +25,7 @@ from rich import box
 
 from envforge_agent import __version__
 from envforge_agent.report import ReportBuilder
+from envforge_agent.detectors.system_detector import detect_disk
 from envforge_agent.schemas import DiagnosticReport
 
 from envforge_agent.utils import _map_os_to_target, _extract_python_version
@@ -164,6 +165,14 @@ def _print_report_summary(report: DiagnosticReport) -> None:
     elif report.ram.total_gb < 16:
         ram_str += "  [yellow][!] WARNING: Under 16 GB — some ML profiles may be slow[/]"
     table.add_row("RAM", ram_str)
+    
+    disk = detect_disk()
+    disk_str = f"{disk['free_gb']} GB free of {disk['total_gb']} GB"
+    if disk["free_gb"] < 5:
+        disk_str += "  [bold red]⚠ CRITICAL: Under 5 GB — setup will likely fail[/]"
+    elif disk["free_gb"] < 20:
+        disk_str += "  [yellow]⚠ WARNING: Low disk space — GPU profiles need 20+ GB[/]"
+    table.add_row("Disk Free", disk_str)
 
 
     if report.gpus:
