@@ -48,6 +48,7 @@ export default function DiagnosePage() {
     if (!report || !selectedProfile) return;
     setVerifying(true);
     setApiDone(false);
+    setError(null);
     setVerifyResult(null);
     try {
       const result = await api.diagnose(report, selectedProfile);
@@ -55,7 +56,7 @@ export default function DiagnosePage() {
       setApiDone(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Verification failed.");
-      setVerifying(false);
+      setApiDone(true);
     }
   };
 
@@ -193,6 +194,12 @@ export default function DiagnosePage() {
                   Run Check
                 </button>
               </div>
+
+              {error && (
+                <div style={{ color: "#ef4444", marginBottom: "1.5rem", fontSize: "0.9rem" }}>
+                  {error}
+                </div>
+              )}
 
               {verifyResult && (
                 <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={{ padding: '1.5rem', background: verifyResult.issues.length === 0 ? 'rgba(16, 185, 129, 0.05)' : 'rgba(239, 68, 68, 0.05)', border: `1px solid ${verifyResult.issues.length === 0 ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`, borderRadius: '8px' }}>

@@ -64,16 +64,56 @@ function WizardContent() {
   }, []);
 
   const handleGenerate = async () => {
+    if (!activeProfile) return;
+
+    // 1. Normalize OS
+    let normalizedOs = targetOs;
+    if (!activeProfile.os_support.includes(targetOs)) {
+      normalizedOs = activeProfile.os_support[0] || "LINUX";
+      setTargetOs(normalizedOs);
+    }
+
+    // 2. Normalize Python
+    let normalizedPy = pythonVersion;
+    if (!activeProfile.python_versions.includes(pythonVersion)) {
+      normalizedPy = activeProfile.python_versions[0] || "";
+      setPythonVersion(normalizedPy);
+    }
+
+    // 3. Normalize CUDA
+    let normalizedCuda = cudaVersion;
+    if (activeProfile.cuda_required && activeProfile.cuda_versions) {
+      if (!activeProfile.cuda_versions.includes(cudaVersion)) {
+        normalizedCuda = activeProfile.cuda_versions[0] || "";
+        setCudaVersion(normalizedCuda);
+      }
+    } else {
+      normalizedCuda = "";
+      setCudaVersion("");
+    }
+
+    // 4. Normalize Output Formats
+    let normalizedFormats = [...outputFormats];
+    if (normalizedOs === "WIN") {
+      normalizedFormats = normalizedFormats.filter(f => f !== "setup.sh");
+    } else {
+      normalizedFormats = normalizedFormats.filter(f => f !== "setup.ps1");
+    }
+    if (normalizedFormats.length === 0) {
+      normalizedFormats = [normalizedOs === "WIN" ? "setup.ps1" : "setup.sh"];
+    }
+    setOutputFormats(normalizedFormats);
+
     setGenerating(true);
     setApiDone(false);
     setError(null);
     try {
       const req: ScriptGenerationRequest = {
         profile_id: selectedProfile,
-        target_os: targetOs,
-        output_formats: outputFormats,
-        python_version: pythonVersion,
-        ...(activeProfile?.cuda_required && cudaVersion ? { cuda_version: cudaVersion } : {})
+        target_os: normalizedOs,
+        output_formats: normalizedFormats,
+        python_version: normalizedPy,
+        ...(activeProfile.cuda_required && normalizedCuda ? { cuda_version: normalizedCuda } : {})
       };
       const res = await api.generateScript(req);
       setResult(res);
