@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 FORBIDDEN_PATTERNS: list[tuple[str, str]] = [
     # Pattern, Description
-    (r"rm\s+-[rRf]{1,3}\s+/(?!\w)", "Recursive delete of root filesystem"),
+    (r"rm\s+-[rRf]{1,3}\s+/", "Recursive delete of filesystem path"),
     (r"rm\s+-[rRf]{1,3}\s+\$HOME", "Recursive delete of home directory"),
     (r"rm\s+-[rRf]{1,3}\s+~", "Recursive delete of home directory (tilde)"),
     (r"mkfs\.", "Filesystem format command"),
@@ -30,7 +30,8 @@ FORBIDDEN_PATTERNS: list[tuple[str, str]] = [
     (r"DROP\s+TABLE", "SQL table destruction"),
     (r"TRUNCATE\s+TABLE", "SQL table truncation"),
     (r"curl\s+.*\|\s*(ba)?sh", "Curl-pipe-to-shell (untrusted exec)"),
-    (r"wget\s+.*-O-\s*\|\s*(ba)?sh", "Wget-pipe-to-shell (untrusted exec)"),
+    (r"wget\s+.*\|\s*(ba)?sh", "Wget-pipe-to-shell (untrusted exec)"),
+    (r"wget\s+.*-O\s+\S+.*&&.*sh", "Wget download-and-execute pattern"),
     (r"eval\s+\$\(", "Eval of subshell output"),
     (r"base64\s+--decode\s*\|.*sh", "Base64 decode pipe to shell"),
 ]

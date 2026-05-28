@@ -1,8 +1,9 @@
 """Diagnose endpoint — POST /api/v1/diagnose."""
+
 import uuid
 from datetime import datetime
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from app.api.deps import DB
 from app.compatibility.errors import (
@@ -12,6 +13,7 @@ from app.compatibility.errors import (
 )
 from app.compatibility.models import OSTarget, PackageConstraint
 from app.compatibility.resolver import CompatibilityResolver
+from app.middleware.rate_limit import general_rate_limit
 from app.models.diagnostic import DiagnosticReport
 from app.schemas.diagnostic import (
     CompatibilityIssue,
@@ -24,10 +26,27 @@ from app.services.profile_service import list_profiles
 router = APIRouter()
 
 
-@router.post("/diagnose", response_model=DiagnoseResponse, status_code=201)
+@router.post(
+    "/diagnose",
+    response_model=DiagnoseResponse,
+    status_code=201,
+    summary="Analyze environment compatibility",
+    description=(
+        "Accept a diagnostic report from the EnvForge CLI agent and return "
+        "a compatibility analysis showing compatible profiles, detected issues, "
+        "and recommendations."
+    ),
+    tags=["Diagnostics"],
+    responses={
+        201: {"description": "Diagnostic report analyzed successfully"},
+        422: {"description": "Invalid diagnostic report payload"},
+        500: {"description": "Internal server error"},
+    },
+)
 async def diagnose(
     report: DiagnosticReportSchema,
     db: DB,
+    _rate_limit: None = Depends(general_rate_limit),
 ) -> DiagnoseResponse:
     """
     Accept a DiagnosticReport from the CLI agent and return
@@ -51,7 +70,9 @@ async def diagnose(
         gpu_name=report.gpus[0].name if report.gpus else None,
         cuda_version=report.cuda.version if report.cuda else None,
         rocm_version=report.rocm.version if report.rocm else None,
-        python_version=report.active_python.version[:4] if report.active_python else None,
+        python_version=".".join(report.active_python.version.split(".")[:2])
+        if report.active_python
+        else None,
         driver_version=report.gpus[0].driver_version if report.gpus else None,
         created_at=datetime.utcnow(),
     )
@@ -62,7 +83,16 @@ async def diagnose(
     compatible_profiles: list[str] = []
     recommendations: list[str] = []
 
-    profiles, _ = await list_profiles(db, ProfileFilters(tags=None, os=None, cuda_required=None, page=1, limit=20))
+    profiles, _ = await list_profiles(
+        db,
+        ProfileFilters(
+            tags=None,
+            os=None,
+            cuda_required=None,
+            page=1,
+            limit=20,
+        ),
+    )
     resolver = CompatibilityResolver()
 
     for profile in profiles:
@@ -78,7 +108,10 @@ async def diagnose(
         try:
             resolved = resolver.resolve(
                 packages=packages,
-                python_version=(report.active_python.version if report.active_python else None) or "3.10",
+                python_version=(
+                    report.active_python.version if report.active_python else None
+                )
+                or "3.10",
                 cuda_version=report.cuda.version if report.cuda else None,
                 rocm_version=report.rocm.version if report.rocm else None,
                 target_os=target_os,
@@ -121,4 +154,3 @@ async def diagnose(
         issues=issues,
         recommendations=recommendations,
     )
-
