@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "./providers";
 import Link from "next/link";
 import Navbar from "./components/Navbar";
+import CurrentYear from "./components/CurrentYear";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit", display: "swap" });
@@ -41,7 +42,7 @@ export default function RootLayout({
           }}
         >
           <div className="container" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.85rem" }}>
-            <p>© {new Date().getFullYear()} EnvForge. Open Source Tooling.</p>
+            <p>© <CurrentYear /> EnvForge. Open Source Tooling.</p>
             <div style={{ display: "flex", gap: "1.5rem" }}>
               <Link href="/docs" style={{ transition: "color var(--transition-fast)" }}>Documentation</Link>
               <Link href="/privacy" style={{ transition: "color var(--transition-fast)" }}>Privacy</Link>
