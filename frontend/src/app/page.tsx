@@ -273,6 +273,306 @@ export default function HomePage() {
           </motion.div>
         </div>
       </section>
+      {/* Feature Showcase */}
+<section
+  style={{
+    paddingTop: "6rem",
+    paddingBottom: "6rem",
+    background: "rgba(255,255,255,0.02)",
+  }}
+>
+  <div className="container">
+    <h2
+      style={{
+        textAlign: "center",
+        fontSize: "2.8rem",
+        marginBottom: "1rem",
+      }}
+    >
+      Built For Modern AI Development
+    </h2>
+
+    <p
+      style={{
+        textAlign: "center",
+        color: "var(--text-secondary)",
+        maxWidth: "800px",
+        margin: "0 auto 4rem",
+        lineHeight: "1.8",
+      }}
+    >
+      From intelligent diagnostics to automated troubleshooting and
+      environment generation, EnvForge provides everything needed to
+      build, validate, and deploy AI/ML environments with confidence.
+    </p>
+
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))",
+        gap: "2rem",
+      }}
+    >
+      {[
+        {
+          title: "⚡ AI Environment Generation",
+          desc: "Generate optimized ML environments instantly with AI-powered recommendations.",
+        },
+        {
+          title: "🛡️ Safe Dependency Installation",
+          desc: "Prevent conflicts and broken setups through automated compatibility checks.",
+        },
+        {
+          title: "🤖 Automated Troubleshooting",
+          desc: "Identify and resolve environment issues before they affect productivity.",
+        },
+        {
+          title: "📦 Preconfigured ML Stacks",
+          desc: "Ready-to-use setups for PyTorch, TensorFlow, CUDA and modern AI workflows.",
+        },
+        {
+          title: "🧠 Smart Diagnostics",
+          desc: "Analyze hardware, software and system readiness with actionable insights.",
+        },
+      ].map((item, i) => (
+        <motion.div
+          key={i}
+          whileHover={{
+            scale: 1.04,
+            y: -8,
+          }}
+          style={{
+            padding: "2rem",
+            borderRadius: "24px",
+            background: "rgba(255,255,255,0.05)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            backdropFilter: "blur(10px)",
+            boxShadow: "0 0 30px rgba(34,197,94,.12)",
+            transition: "all .3s ease",
+          }}
+        >
+          <h3
+            style={{
+              marginBottom: "0.8rem",
+              fontSize: "1.15rem",
+            }}
+          >
+            {item.title}
+          </h3>
+
+          <p
+            style={{
+              color: "var(--text-secondary)",
+              lineHeight: "1.7",
+            }}
+          >
+            {item.desc}
+          </p>
+        </motion.div>
+      ))}
+    </div>
+
+    <div
+      style={{
+        marginTop: "5rem",
+      }}
+    >
+      <h3
+        style={{
+          textAlign: "center",
+          marginBottom: "1.5rem",
+          fontSize: "1.5rem",
+        }}
+      >
+        Live Environment Analysis
+      </h3>
+
+      <motion.div
+        whileHover={{ scale: 1.02 }}
+        style={{
+          padding: "2rem",
+          borderRadius: "24px",
+          background: "#0f172a",
+          border: "1px solid rgba(34,197,94,0.2)",
+          fontFamily: "monospace",
+          maxWidth: "850px",
+          margin: "0 auto",
+          boxShadow: "0 0 40px rgba(34,197,94,.15)",
+        }}
+      >
+        <p style={{ color: "#22c55e" }}>
+          $ envforge diagnose
+        </p>
+
+        <p>✓ Python 3.11 Detected</p>
+        <p>✓ CUDA Toolkit Available</p>
+        <p>✓ NVIDIA GPU Compatible</p>
+        <p>✓ Dependency Check Passed</p>
+
+        <br />
+
+        <p style={{ color: "#06b6d4" }}>
+          ⚡ Generating Optimized Environment...
+        </p>
+
+        <p style={{ color: "#94a3b8" }}>
+          Profile: PyTorch CUDA
+        </p>
+
+        <p style={{ color: "#22c55e" }}>
+          Status: Ready To Deploy ✓
+        </p>
+      </motion.div>
+    </div>
+  </div>
+</section>
+<div
+  style={{
+    textAlign: "center",
+    marginBottom: "4rem",
+  }}
+>
+  <h2>Ready to Forge Your Environment?</h2>
+
+  <p
+    style={{
+      color: "var(--text-secondary)",
+      marginTop: "1rem",
+    }}
+  >
+    Start building optimized AI environments in minutes.
+  </p>
+</div>
+{/* Footer */}
+<footer
+  style={{
+    marginTop: "4rem",
+    padding: "5rem 0 2rem",
+    borderTop: "1px solid rgba(255,255,255,0.08)",
+    background:
+      "linear-gradient(to bottom, rgba(255,255,255,0.02), rgba(255,255,255,0.01))",
+  }}
+>
+  <div
+    className="container"
+    style={{
+      display: "grid",
+      gridTemplateColumns: "2fr 1fr 1fr 1fr",
+      gap: "3rem",
+    }}
+  >
+    {/* Brand */}
+    <div>
+      <h2
+        style={{
+          fontSize: "1.8rem",
+          marginBottom: "1rem",
+          background:
+            "linear-gradient(to right,#22c55e,#06b6d4,#3b82f6)",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+        }}
+      >
+        EnvForge ⚡
+      </h2>
+
+      <p
+        style={{
+          color: "var(--text-secondary)",
+          lineHeight: "1.8",
+          maxWidth: "350px",
+        }}
+      >
+        Build, diagnose and optimize AI/ML environments with confidence.
+        Designed for developers who want faster setup, fewer errors and
+        smarter workflows.
+      </p>
+
+      <div
+        style={{
+          marginTop: "1rem",
+          display: "flex",
+          gap: "0.8rem",
+        }}
+      >
+        <span
+          style={{
+            padding: "6px 12px",
+            borderRadius: "999px",
+            background: "rgba(34,197,94,0.15)",
+            border: "1px solid rgba(34,197,94,0.25)",
+            fontSize: "0.85rem",
+          }}
+        >
+          Open Source
+        </span>
+
+        <span
+          style={{
+            padding: "6px 12px",
+            borderRadius: "999px",
+            background: "rgba(59,130,246,0.15)",
+            border: "1px solid rgba(59,130,246,0.25)",
+            fontSize: "0.85rem",
+          }}
+        >
+          AI Powered
+        </span>
+      </div>
+    </div>
+
+    {/* Product */}
+    <div>
+      <h4 style={{ marginBottom: "1rem" }}>
+        Product
+      </h4>
+
+      <p>Profiles</p>
+      <p>Diagnose</p>
+      <p>Troubleshoot</p>
+      <p>Script Generator</p>
+    </div>
+
+    {/* Resources */}
+    <div>
+      <h4 style={{ marginBottom: "1rem" }}>
+        Resources
+      </h4>
+
+      <p>Documentation</p>
+      <p>Guides</p>
+      <p>API Reference</p>
+      <p>FAQ</p>
+    </div>
+
+    {/* Community */}
+    <div>
+      <h4 style={{ marginBottom: "1rem" }}>
+        Community
+      </h4>
+
+      <p>Contribute</p>
+      <p>GitHub</p>
+      <p>Report Issues</p>
+      <p>Discussions</p>
+    </div>
+  </div>
+
+  {/* Bottom Bar */}
+  <div
+    style={{
+      marginTop: "4rem",
+      paddingTop: "1.5rem",
+      borderTop: "1px solid rgba(255,255,255,0.06)",
+      textAlign: "center",
+      color: "var(--text-secondary)",
+    }}
+  >
+    <p>
+      Built for Developers ❤️ • Powered by AI ⚡ • Open Source 🚀
+    </p>
+  </div>
+</footer>
     </div>
   );
 }
