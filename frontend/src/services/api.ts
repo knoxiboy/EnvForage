@@ -82,22 +82,34 @@ export const api = {
     }
 
     const reader = response.body.getReader();
-    const decoder = new TextDecoder();
+    const decoder = new TextDecoder('utf-8');
     let fullContent = '';
+    let buffer = '';
 
     while (true) {
       const { done, value } = await reader.read();
-      if (done) break;
 
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split('\n');
-      
+      const chunk = decoder.decode(value, { stream: !done });
+      buffer += chunk;
+
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
       for (const line of lines) {
         if (line.startsWith('data: ')) {
           const token = line.slice(6);
           fullContent += token;
           onToken(token);
         }
+      }
+
+      if (done) {
+        if (buffer.startsWith('data: ')) {
+          const token = buffer.slice(6);
+          fullContent += token;
+          onToken(token);
+        }
+        break;
       }
     }
 
