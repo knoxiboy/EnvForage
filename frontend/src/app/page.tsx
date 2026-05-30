@@ -123,7 +123,7 @@ export default function HomePage() {
                     left: "-2%", 
                     right: "-2%", 
                     height: "40%", 
-                    background: "var(--border-strong)", 
+                    background: "var(--highlight-strip)", 
                     zIndex: -1 
                   }}
                 />
@@ -192,7 +192,9 @@ export default function HomePage() {
         style={{ 
           position: "relative", 
           zIndex: 10, 
-          background: "transparent",
+          backgroundColor: "var(--bg-core)",
+          backgroundImage: "radial-gradient(var(--border-subtle) 1px, transparent 1px)",
+          backgroundSize: "6px 6px",
           boxShadow: "0 -20px 50px rgba(0,0,0,0.05)",
         }}
       >

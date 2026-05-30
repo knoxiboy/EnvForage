@@ -26,8 +26,10 @@
   
   --brand-primary: #6366f1; /* Indigo neon */
   --brand-primary-hover: #4f46e5;
-  --brand-secondary: #a855f7; /* Purple accent */
+  --brand-secondary: #facc15;
   --brand-accent: #10b981; /* Emerald for success */
+  
+  --highlight-strip: rgba(250, 204, 21, 0.2); /* Muted yellow for dark mode */
   
   --border-subtle: rgba(255, 255, 255, 0.05);
   --border-strong: rgba(255, 255, 255, 0.15);
@@ -68,6 +70,8 @@
   --brand-primary-hover: #1e293b;
   --brand-secondary: #facc15; /* Vibrant yellow */
   --brand-accent: #facc15; /* Vibrant yellow */
+  
+  --highlight-strip: #e3d5b8; /* Warm dark cream */
   
   --border-subtle: rgba(15, 23, 42, 0.08);
   --border-strong: rgba(15, 23, 42, 0.15);
