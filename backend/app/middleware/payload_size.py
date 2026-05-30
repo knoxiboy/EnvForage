@@ -3,6 +3,8 @@
 from starlette.datastructures import Headers
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
+# At the top of payload_size.py, add to imports:
+import json
 
 MAX_PAYLOAD_BYTES: int = 1 * 1024 * 1024  # 1 MB
 
@@ -66,20 +68,28 @@ class PayloadSizeLimitMiddleware:
             await send(message)
 
         await self.app(scope, limited_receive, guarded_send)
-
-    @staticmethod
-    async def _send_413(send: Send) -> None:
-        """Send a structured 413 response matching the API error envelope."""
-        response = JSONResponse(
-            status_code=413,
-            content={
-                "error": {
-                    "code": "PAYLOAD_TOO_LARGE",
-                    "message": (
-                        f"Request body exceeds the maximum allowed size "
-                        f"of {MAX_PAYLOAD_BYTES // (1024 * 1024)} MB."
-                    ),
-                }
-            },
-        )
-        await response({"type": "http"}, lambda: None, send)
+@staticmethod
+async def _send_413(send: Send) -> None:
+    """Send a structured 413 response matching the API error envelope."""
+    await send({
+        "type": "http.response.start",
+        "status": 413,
+        "headers": [
+            (b"content-type", b"application/json"),
+        ],
+    })
+    
+    body = json.dumps({
+        "error": {
+            "code": "PAYLOAD_TOO_LARGE",
+            "message": (
+                f"Request body exceeds the maximum allowed size "
+                f"of {MAX_PAYLOAD_BYTES // (1024 * 1024)} MB."
+            ),
+        }
+    }).encode("utf-8")
+    await send({
+        "type": "http.response.body",
+        "body": body,
+        "more_body": False,
+    })
