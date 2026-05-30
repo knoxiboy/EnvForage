@@ -31,7 +31,7 @@ export default function Footer() {
               fontWeight: 800,
             }}
           >
-            EnvForge ⚡
+            EnvForage ⚡
           </h2>
 
           <p
@@ -134,7 +134,7 @@ export default function Footer() {
         }}
       >
         <p>
-          © <CurrentYear /> EnvForge. Built for Developers ❤️ • Powered by AI ⚡
+          © <CurrentYear /> EnvForage. Built for Developers ❤️ • Powered by AI ⚡
         </p>
       </div>
     </footer>

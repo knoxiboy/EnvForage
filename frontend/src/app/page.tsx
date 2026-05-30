@@ -72,17 +72,20 @@ export default function HomePage() {
         }}
       />
 
-      {/* Hero Section (Sticky Parallax Layer) */}
-      <section
-        style={{
-          position: "sticky",
-          top: "80px", /* Below navbar */
-          height: "calc(100vh - 80px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 1,
-          overflow: "hidden",
+      {/* Hero Section (Fixed Parallax Layer) */}
+      <div style={{ height: "calc(100vh - 80px)" }}>
+        <section
+          style={{
+            position: "fixed",
+            top: "80px", /* Below navbar */
+            left: 0,
+            right: 0,
+            height: "calc(100vh - 80px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1,
+            overflow: "hidden",
           background: "radial-gradient(circle at top left, rgba(34,197,94,0.15), transparent 30%), radial-gradient(circle at bottom right, rgba(59,130,246,0.15), transparent 30%), var(--bg-primary)",
         }}
       >
@@ -221,7 +224,7 @@ export default function HomePage() {
                 <div style={{ width: "12px", height: "12px", borderRadius: "50%", background: "#22c55e" }} />
               </div>
               <p style={{ color: "#22c55e", marginBottom: "1rem" }}>
-                $ envforge diagnose
+                $ envforage diagnose
               </p>
               <p style={{ color: "var(--text-primary)" }}>✓ Python 3.11 Detected</p>
               <p style={{ color: "var(--text-primary)" }}>✓ CUDA Toolkit Available</p>
@@ -242,6 +245,7 @@ export default function HomePage() {
           </motion.div>
         </div>
       </section>
+    </div>
 
       {/* OVERLAPPING CONTENT LAYER */}
       <div 
@@ -267,7 +271,7 @@ export default function HomePage() {
                   fontSize: "1.1rem"
                 }}
               >
-                From intelligent diagnostics to automated troubleshooting and environment generation, EnvForge provides everything needed to build, validate, and deploy AI/ML environments with confidence.
+                From intelligent diagnostics to automated troubleshooting and environment generation, EnvForage provides everything needed to build, validate, and deploy AI/ML environments with confidence.
               </p>
 
               <motion.div 
@@ -322,7 +326,7 @@ export default function HomePage() {
                 {[
                   { num: 1, title: "Run Diagnostics", desc: "Use the built-in diagnostic tool to analyze your system hardware and OS." },
                   { num: 2, title: "Choose Profile", desc: "Select your desired ML framework (e.g. PyTorch, TensorFlow) and version." },
-                  { num: 3, title: "Verify Compatibility", desc: "EnvForge automatically checks if your hardware supports the selected profile." },
+                  { num: 3, title: "Verify Compatibility", desc: "EnvForage automatically checks if your hardware supports the selected profile." },
                   { num: 4, title: "Generate Script", desc: "Instantly download a safe, optimized setup script ready for deployment." },
                 ].map((step, i) => (
                   <motion.div

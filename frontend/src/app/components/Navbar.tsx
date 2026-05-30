@@ -38,7 +38,7 @@ export default function Navbar() {
       <div className="container" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "2.5rem" }}>
           <Link href="/" style={{ fontSize: "1.5rem", fontWeight: 800, fontFamily: "var(--font-display)", letterSpacing: "-0.03em" }}>
-            Env<span className="text-gradient">Forge</span>
+            Env<span className="text-gradient">Forage</span>
           </Link>
           <nav style={{ display: "flex", gap: "1.75rem", fontSize: "0.925rem", fontWeight: 500 }}>
             {navLinks.map((link) => {

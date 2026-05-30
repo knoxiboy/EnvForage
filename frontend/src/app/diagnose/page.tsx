@@ -232,7 +232,7 @@ export default function DiagnosePage() {
               onComplete={() => {
                 setVerifying(false);
               }}
-              title="EnvForge Diagnostic Compiler"
+              title="EnvForage Diagnostic Compiler"
             />
           ) : (
             <div className="glass-panel" style={{ padding: '2rem' }}>

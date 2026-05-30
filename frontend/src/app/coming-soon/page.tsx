@@ -51,7 +51,7 @@ export default function ComingSoonPage() {
             lineHeight: "1.6",
           }}
         >
-          We are currently forging this page. Check back soon for updates as we continue building out EnvForge!
+          We are currently forging this page. Check back soon for updates as we continue building out EnvForage!
         </p>
 
         <Link

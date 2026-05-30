@@ -27,7 +27,7 @@ export default function TerminalLoader({
   cudaVersion,
   isResolved = true,
   onComplete,
-  title = "EnvForge Environment Compiler",
+  title = "EnvForage Environment Compiler",
 }: TerminalLoaderProps) {
   const [progress, setProgress] = useState(0);
   const consoleEndRef = useRef<HTMLDivElement>(null);
@@ -41,7 +41,7 @@ export default function TerminalLoader({
       type: "input",
       minProgress: 0,
     },
-    { text: "[system] Initializing EnvForge loading sequence...", type: "info", minProgress: 4 },
+    { text: "[system] Initializing EnvForage loading sequence...", type: "info", minProgress: 4 },
     { text: "[system] Loading security policies and environment constraints...", type: "info", minProgress: 10 },
     { text: "[network] Resolving repository endpoint and telemetry pathways...", type: "network", minProgress: 16 },
     { text: "[network] SECURE CONNECTION ESTABLISHED (TLS 1.3, AES-256-GCM)", type: "success", minProgress: 22 },

@@ -27,7 +27,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "EnvForge | ML Environment Provisioning",
+  title: "EnvForage | ML Environment Provisioning",
   description:
     "Generate intelligent, safe, and deterministic ML/AI environment setup scripts.",
 };
