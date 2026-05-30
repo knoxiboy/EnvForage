@@ -251,6 +251,15 @@ a:hover {
   padding: 0 2rem;
 }
 
+.highlight-strip {
+  background-color: var(--highlight-strip);
+  mix-blend-mode: multiply;
+}
+
+[data-theme="dark"] .highlight-strip {
+  mix-blend-mode: screen;
+}
+
 /* ─────────────────────────────────────────────────────────────
    THEME TOGGLE BUTTON (Navbar)
    ───────────────────────────────────────────────────────────── */

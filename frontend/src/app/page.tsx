@@ -117,13 +117,13 @@ export default function HomePage() {
               <span style={{ position: "relative", display: "inline-block" }}>
                 dependency hell.
                 <span 
+                  className="highlight-strip"
                   style={{ 
                     position: "absolute", 
                     bottom: "10%", 
                     left: "-2%", 
                     right: "-2%", 
                     height: "40%", 
-                    background: "var(--highlight-strip)", 
                     zIndex: -1 
                   }}
                 />
