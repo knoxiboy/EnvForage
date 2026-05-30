@@ -124,7 +124,7 @@ def cli(ctx: click.Context, no_color: bool) -> None:
     help="Timeout in seconds for each detector subprocess call. Default: 30s.",
 )
 
-def diagnose(output: str | None, send: bool, api_url: str, quiet: bool, sarif: bool, timeout: int, output_format: str) -> None:
+def diagnose(output: str | None, send: bool, api_url: str, quiet: bool, sarif: bool, timeout: int, output_format: str = "json") -> None:
     """
     Collect a full diagnostic report of this machine's ML environment.
 
@@ -514,7 +514,7 @@ def _print_verification_summary(data: dict, is_gpu_profile: bool) -> None:
 @click.option(
     "--report",
     "-r",
-    type=click.Path(exists=True, dir_okay=False, readable=True),
+    type=click.Path( dir_okay=False, readable=True),
     required=True,
     help="Path to a saved DiagnosticReport JSON file.",
 )
