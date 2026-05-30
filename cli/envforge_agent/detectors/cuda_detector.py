@@ -16,6 +16,7 @@ cuDNN detection:
 from __future__ import annotations
 
 import os
+import platform
 import re
 import subprocess
 from pathlib import Path
@@ -50,17 +51,22 @@ def _detect_cuda_version(timeout: int = 30) -> str | None:
     if version:
         return version
 
-    # Method 2: Read version.txt from standard paths
+    # Method 2: Windows Registry
+    version, _ = _detect_cuda_via_registry()
+    if version:
+        return version
+
+    # Method 3: Read version.txt from standard paths
     version = _read_version_txt()
     if version:
         return version
 
-    # Method 3: CUDA_PATH / CUDA_HOME environment variable
+    # Method 4: CUDA_PATH / CUDA_HOME environment variable
     version = _cuda_path_env_version()
     if version:
         return version
 
-    # Method 4: nvidia-smi CUDA version (driver-level, may differ from toolkit)
+    # Method 5: nvidia-smi CUDA version (driver-level, may differ from toolkit)
     version = _nvidia_smi_cuda_version(timeout=timeout)
     if version:
         return version
@@ -156,6 +162,48 @@ def _nvidia_smi_cuda_version(timeout: int = 30) -> str | None:
     return None
 
 
+def _detect_cuda_via_registry() -> tuple[str | None, str | None]:
+    """Detect CUDA version and path via Windows Registry."""
+    if platform.system() != "Windows":
+        return None, None
+    try:
+        import winreg
+        key_path = r"SOFTWARE\NVIDIA Corporation\GPU Computing Toolkit\CUDA"
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, key_path) as key:
+            best_version_tuple = (-1, -1)
+            best_version_str = None
+            best_install_dir = None
+            
+            i = 0
+            while True:
+                try:
+                    version_name = winreg.EnumKey(key, i)
+                    v_str = version_name.lstrip("v")
+                    
+                    # Parse into tuple for reliable comparison (e.g. 12.1 > 11.8)
+                    try:
+                        v_tuple = tuple(int(x) for x in v_str.split("."))
+                    except ValueError:
+                        v_tuple = (0, 0)
+                        
+                    if v_tuple > best_version_tuple:
+                        with winreg.OpenKey(key, version_name) as subkey:
+                            install_dir = winreg.QueryValueEx(subkey, "InstallDir")[0]
+                            best_version_tuple = v_tuple
+                            best_version_str = v_str
+                            best_install_dir = install_dir
+                    i += 1
+                except OSError:
+                    # No more subkeys to enumerate
+                    break
+                    
+            if best_version_str and best_install_dir:
+                return best_version_str, best_install_dir
+            return None, None
+    except Exception:
+        return None, None
+
+
 # ── Toolkit path ──────────────────────────────────────────────────────────────
 
 def _detect_toolkit_path(cuda_version: str | None) -> str | None:
@@ -165,6 +213,11 @@ def _detect_toolkit_path(cuda_version: str | None) -> str | None:
         path = os.environ.get(env_var)
         if path and Path(path).exists():
             return path
+
+    # Check Windows Registry
+    _, reg_path = _detect_cuda_via_registry()
+    if reg_path and Path(reg_path).exists():
+        return reg_path
 
     # Linux standard paths
     if cuda_version:

@@ -66,11 +66,12 @@ class TestFixHappyPath:
     def test_fix_displays_script_content(self, valid_report):
         """Standard run should print script content in a rich panel."""
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "fix",
-            "--report", str(valid_report),
-            "--profile", "pytorch-cuda",
-        ])
+        with patch("httpx.AsyncClient.post", return_value=mock_api_success):
+            result = runner.invoke(cli, [
+                "fix",
+                "--report", str(valid_report),
+                "--profile", "pytorch-cuda",
+            ])
 
         assert result.exit_code == 0
         assert "setup.sh" in result.output
@@ -79,12 +80,13 @@ class TestFixHappyPath:
     def test_fix_dry_run_lists_filenames_only(self, valid_report):
         """--dry-run should list script filenames without printing content."""
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "fix",
-            "--report", str(valid_report),
-            "--profile", "pytorch-cuda",
-            "--dry-run",
-        ])
+        with patch("httpx.AsyncClient.post", return_value=mock_api_success):
+            result = runner.invoke(cli, [
+                "fix",
+                "--report", str(valid_report),
+                "--profile", "pytorch-cuda",
+                "--dry-run",
+            ])
 
         assert result.exit_code == 0
         assert "setup.sh" in result.output
@@ -94,11 +96,12 @@ class TestFixHappyPath:
     def test_fix_shows_resolved_packages(self, valid_report):
         """Output should include resolved packages from API response."""
         runner = CliRunner()
-        result = runner.invoke(cli, [
-            "fix",
-            "--report", str(valid_report),
-            "--profile", "pytorch-cuda",
-        ])
+        with patch("httpx.AsyncClient.post", return_value=mock_api_success):
+            result = runner.invoke(cli, [
+                "fix",
+                "--report", str(valid_report),
+                "--profile", "pytorch-cuda",
+            ])
 
         assert result.exit_code == 0
         assert "torch==2.3.0" in result.output
@@ -122,12 +125,13 @@ class TestFixHappyPath:
     def test_fix_uses_custom_api_url(self, valid_report, mock_httpx):
         """--api-url flag should override the default localhost URL."""
         runner = CliRunner()
-        runner.invoke(cli, [
-            "fix",
-            "--report", str(valid_report),
-            "--profile", "pytorch-cuda",
-            "--api-url", "http://myserver:9000",
-        ])
+        with patch("httpx.AsyncClient.post", return_value=mock_api_success) as mock_post:
+            runner.invoke(cli, [
+                "fix",
+                "--report", str(valid_report),
+                "--profile", "pytorch-cuda",
+                "--api-url", "http://myserver:9000",
+            ])
 
         called_url = mock_httpx.post.call_args[0][0]
         assert "myserver:9000" in called_url

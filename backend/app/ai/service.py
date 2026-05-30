@@ -65,11 +65,7 @@ class AITroubleshootService:
             db: Async database session for audit persistence.
 
         Returns:
-            TroubleshootResponse with root cause analysis and fix suggestions.
-
-        Raises:
-            LLMProviderError: If the LLM call fails after retries.
-            SafetyViolationError: If AI output contains forbidden patterns.
+            Try/Except structured TroubleshootResponse with root cause analysis.
         """
         session_id = str(uuid.uuid4())
         start_time = time.monotonic()
@@ -89,15 +85,12 @@ class AITroubleshootService:
         model_name = getattr(provider, "model", "unknown")
 
         try:
-            # The LLM returns a TroubleshootResponse directly
-            # We need a response model WITHOUT session_id (LLM doesn't know it)
             llm_result = await provider.complete(
                 system_prompt=TROUBLESHOOT_SYSTEM_PROMPT,
                 user_message=user_message,
                 response_model=TroubleshootResponse,
             )
         except LLMProviderError as exc:
-            # Log the failed attempt
             latency_ms = int((time.monotonic() - start_time) * 1000)
             record_ai_token_usage(
                 provider=provider_name,
@@ -117,7 +110,6 @@ class AITroubleshootService:
             raise
 
         # ── Step 3: Safety filter ─────────────────────────────────────────
-        # Validate all text fields in the response
         safety_violation: str | None = None
         try:
             self._validate_response_safety(llm_result)
@@ -159,10 +151,9 @@ class AITroubleshootService:
         # ── Step 5: Persist to DB ─────────────────────────────────────────
         latency_ms = int((time.monotonic() - start_time) * 1000)
         token_usage = getattr(provider, "last_token_usage", None)
+
         if callable(token_usage):
             token_usage = token_usage()
-        elif not isinstance(token_usage, dict):
-            token_usage = getattr(provider, "_last_usage", None)
 
         total_tokens = token_usage.get("total_tokens", 0) if token_usage else 0
         prompt_tokens = token_usage.get("prompt_tokens", 0) if token_usage else 0
@@ -219,11 +210,6 @@ class AITroubleshootService:
     ) -> AsyncIterator[str]:
         """
         Stream the AI troubleshooting response with safety validation.
-
-        All provider tokens are buffered until the response is complete, then
-        the full response is deserialised and validated through the safety
-        filter before any bytes are yielded to the caller. This matches the
-        safety guarantee of the non-streaming path.
         """
         session_id = str(uuid.uuid4())
         start_time = time.monotonic()
@@ -328,10 +314,8 @@ class AITroubleshootService:
 
     def _validate_response_safety(self, response: TroubleshootResponse) -> None:
         """Run all text fields through the template SafetyFilter."""
-        # Validate root cause text
         validate_rendered_output(response.root_cause, "ai_root_cause")
 
-        # Validate each suggestion
         for fix in response.suggested_fixes:
             validate_rendered_output(fix.title, "ai_fix_title")
             validate_rendered_output(fix.description, "ai_fix_description")
@@ -348,7 +332,6 @@ class AITroubleshootService:
         model_name: str,
     ) -> None:
         """Persist the AI session and suggestions to the database."""
-
         max_retries = 3
 
         for attempt in range(max_retries):
@@ -361,7 +344,6 @@ class AITroubleshootService:
                 )
 
                 db.add(db_session)
-
                 await db.flush()
 
                 for fix in response.suggested_fixes:
@@ -378,15 +360,11 @@ class AITroubleshootService:
                         template_id=fix.repair_template_id,
                         created_at=datetime.utcnow(),
                     )
-
                     db.add(db_suggestion)
-
                 return
 
             except Exception as exc:
                 await db.rollback()
-                # 1. Use logger.exception to capture the full traceback
-
                 logger.exception(
                     "Failed to persist AI session (attempt %d/%d): %s",
                     attempt + 1,
@@ -399,10 +377,8 @@ class AITroubleshootService:
                         "Retrying AI session persistencefor session %s",
                         session_id,
                     )
-
                     await asyncio.sleep(1)
                 else:
-                    # 2. On final permanent failure, log critical and raise so troubleshoot() can update the audit log
                     logger.critical(
                         "AI session persistence permanently failed for session %s",
                         session_id,
@@ -413,9 +389,6 @@ class AITroubleshootService:
             "AI session persistence permanently failed for session %s",
             session_id,
         )
-
-        # Don't fail the request if persistence fails
-        # The response is still valid
 
     async def _log_audit(
         self,
@@ -531,3 +504,4 @@ class AITroubleshootService:
             "uncertainty_reason, and fallback_recommendation for EVERY SuggestedFix.",
         ]
         return "\n".join(parts)
+
