@@ -186,13 +186,32 @@ def _validate_bash_ast(content: str, template_name: str = "") -> None:
                                     if first_cmd_name in ("curl", "wget"):
                                         for arg in first_cmd_parts[1:]:
                                             if hasattr(arg, "word"):
-                                                word = arg.word
-                                                if (
-                                                    "astral.sh" in word
-                                                    or "micro.mamba.pm" in word
+                                                u = arg.word.strip("'\"")
+                                                if u.startswith(
+                                                    ("http://", "https://")
                                                 ):
-                                                    is_whitelisted = True
-                                                    break
+                                                    try:
+                                                        from urllib.parse import (
+                                                            urlparse,
+                                                        )
+
+                                                        parsed = urlparse(u)
+                                                        host = parsed.netloc.split(":")[
+                                                            0
+                                                        ].lower()
+                                                        if host in (
+                                                            "astral.sh",
+                                                            "micro.mamba.pm",
+                                                        ) or host.endswith(
+                                                            (
+                                                                ".astral.sh",
+                                                                ".micro.mamba.pm",
+                                                            )
+                                                        ):
+                                                            is_whitelisted = True
+                                                            break
+                                                    except Exception:
+                                                        pass
                             if not is_whitelisted:
                                 violations.append(
                                     f"Pipe-to-shell detected in pipeline: {cmd_name}"
@@ -258,6 +277,7 @@ def _validate_shellcheck(content: str, template_name: str = "") -> None:
             text=True,
             capture_output=True,
             check=False,
+            timeout=5.0,
         )
         if process.returncode != 0:
             try:

