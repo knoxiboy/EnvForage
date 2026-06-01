@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `use_uv` boolean field to `GenerationRequest` schema — when `true`, generated scripts bootstrap and use `uv` instead of `pip` for significantly faster package installation.
   - Updated `setup_windows.ps1.j2` to bootstrap `uv` via `Invoke-RestMethod` and conditionally use `uv pip install`.
   - Updated `setup_linux.sh.j2` to bootstrap `uv` via `curl` and conditionally use `uv pip install` across all install paths (CUDA, non-CUDA, CPU-only).
+### Added
+- **Helm Chart for Kubernetes Deployment:**
+  - Added `helm/envforge/` chart with templates for backend Deployment, Redis Deployment, Services, Ingress, and ConfigMap.
+  - Parameterized via `values.yaml` — image, ports, replicas, env vars, and Redis config are all overridable.
+  - Non-root `securityContext` (`runAsNonRoot: true`) applied to backend Deployment, consistent with Dockerfile hardening.
+  - Liveness and readiness probes configured on `/health`.
 
 ### Fixed
 - **Rate Limiter Redis Fallback (`rate_limit.py`):**
