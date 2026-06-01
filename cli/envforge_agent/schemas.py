@@ -141,7 +141,7 @@ class DiagnosticReport(BaseModel):
             py = self.active_python
             venv = " (venv)" if py.is_venv else ""
             lines.append(f"- **Active**: {py.version} at `{py.path}`{venv}")
-        if len(self.python_installations) > 1:
+        if len(self.python_installations) >= 1:
             others = [
                 p for p in self.python_installations
                 if p.path != (self.active_python.path if self.active_python else "")

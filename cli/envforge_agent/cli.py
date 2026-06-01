@@ -115,7 +115,7 @@ def cli(ctx: click.Context, no_color: bool) -> None:
     type=click.Choice(["json", "yaml", "markdown"], case_sensitive=False),
     default="json",
     show_default=True,
-    help="Output format for the diagnostic report (json, yaml).",
+    help="Output format for the diagnostic report (json, yaml, markdown).",
 )
 @click.option(
     "--timeout", "-t",
