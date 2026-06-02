@@ -221,6 +221,25 @@ def test_non_matrix_package_uses_spec():
     assert result.packages[0].version == "3.8.4"
 
 
+def test_warns_on_hybrid_conda_pip_gpu_environment():
+    result = R.resolve(
+        packages=[
+            PackageConstraint("numpy", "1.26.4"),
+            PackageConstraint("torch", "2.1.2", cuda_variant="cu118"),
+        ],
+        python_version="3.11",
+        cuda_version="11.8",
+        target_os="LINUX",
+        profile_slug="pytorch-cuda",
+        os_support=["LINUX", "WSL"],
+        cuda_required=True,
+    )
+    assert any(
+        "conda-managed packages" in warning and "ABI-sensitive" in warning
+        for warning in result.warnings
+    )
+
+
 def test_to_dict_serializes():
     result = R.resolve(
         packages=[PackageConstraint("torch", "2.1.0")],
