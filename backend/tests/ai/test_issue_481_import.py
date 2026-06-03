@@ -3,8 +3,9 @@ Tests for Issue #481 — record_ai_token_usage called but not imported.
 Branch: fix/481-record-ai-token-usage-import
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 
 class TestRecordAITokenUsageImport:
@@ -35,8 +36,8 @@ class TestRecordAITokenUsageImport:
     @pytest.mark.asyncio
     async def test_token_usage_called_on_llm_error(self):
         """record_ai_token_usage must be called with success=False on LLM error."""
-        from app.ai.service import AITroubleshootService
         from app.ai.providers.base import LLMProviderError
+        from app.ai.service import AITroubleshootService
 
         mock_provider = AsyncMock()
         mock_provider.complete.side_effect = LLMProviderError(provider="MockProvider", reason="timeout")

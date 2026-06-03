@@ -4,8 +4,10 @@ covering confidence gating, retry logic, audit log paths, and stream path.
 Run these before committing any of the 3 fix branches.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from app.ai.service import AITroubleshootService
 
 
@@ -56,10 +58,8 @@ class TestPersistSessionRetryLogic:
         mock_db.flush = AsyncMock()
         mock_db.rollback = AsyncMock()
 
-        attempt_count = 0
-
-        with patch("app.ai.service.AISession") as MockSession:
-            MockSession.side_effect = Exception("DB error")
+        with patch("app.ai.service.AISession") as mock_session:
+            mock_session.side_effect = Exception("DB error")
 
             with patch("app.ai.service.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
                 with pytest.raises(Exception):
@@ -83,7 +83,7 @@ class TestPersistSessionRetryLogic:
 
         call_count = 0
 
-        with patch("app.ai.service.AISession") as MockSession:
+        with patch("app.ai.service.AISession") as mock_session:
             def side_effect(*args, **kwargs):
                 nonlocal call_count
                 call_count += 1
@@ -91,7 +91,7 @@ class TestPersistSessionRetryLogic:
                     raise Exception("transient error")
                 return MagicMock(id="session-uuid")
 
-            MockSession.side_effect = side_effect
+            mock_session.side_effect = side_effect
 
             with patch("app.ai.service.asyncio.sleep", new_callable=AsyncMock):
                 with patch("app.ai.service.AISuggestion"):
