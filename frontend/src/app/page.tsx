@@ -1,6 +1,6 @@
 "use client";
 
-import { Variants, motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import {
 	CheckCircle2,
 	Package,
@@ -298,6 +298,8 @@ export default function HomePage() {
 						>
 							Get Started
 						</Link>
+						
+						
 					</div>
 				</section>
 			</div>
