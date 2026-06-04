@@ -5,20 +5,35 @@ Postgres connection is needed.  Each test gets a fresh ``db_session``
 that is automatically rolled back after the test, keeping tests isolated.
 
 NOTE: passlib 1.7.4 is incompatible with bcrypt >=4.0 (an 80-byte internal
-self-test string exceeds bcrypt's 72-byte limit).  All tests that invoke
-hashing use a monkeypatched CryptContext backed by passlib's ``plaintext``
-scheme to stay fast and hermetic.
+self-test string exceeds bcrypt's 72-byte limit).  HTTP-layer tests that
+invoke hashing use a monkeypatched CryptContext backed by passlib's
+``plaintext`` scheme to stay fast and hermetic.  The real bcrypt hashing
+path is exercised separately by ``test_bcrypt_hash_and_verify_round_trip``
+and ``test_signin_real_bcrypt_hash`` which use the ``bcrypt`` library
+directly, bypassing passlib's broken self-test.
 """
 
+import bcrypt
 import pytest
 from fastapi.testclient import TestClient
 from passlib.context import CryptContext
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import app.api.v1.authentication as auth_module
 from app.database import get_db
 from app.main import create_app
 from app.services.user_repository import UserRepository
+
+
+def _bcrypt_hash(plain: str) -> str:
+    """Hash a password with bcrypt directly — bypasses passlib's self-test."""
+    return bcrypt.hashpw(plain.encode(), bcrypt.gensalt()).decode()
+
+
+def _bcrypt_verify(plain: str, hashed: str) -> bool:
+    """Verify a bcrypt hash directly — bypasses passlib's self-test."""
+    return bcrypt.checkpw(plain.encode(), hashed.encode())
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -248,3 +263,125 @@ async def test_user_repository_create_user_returns_user_with_id(
     assert user.email == "created@example.com"
     assert user.fname == "New"
     assert user.lname == "Person"
+
+
+# ── Real bcrypt coverage (Issue 3) ────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_bcrypt_hash_and_verify_round_trip(db_session: AsyncSession):
+    """Confirm real bcrypt hashing & verification works end-to-end through
+    UserRepository, independently of the passlib/bcrypt version conflict.
+    Uses the ``bcrypt`` library directly to avoid passlib's broken self-test.
+    """
+    plain = "realpassword!"
+    hashed = _bcrypt_hash(plain)
+
+    repo = UserRepository(db_session)
+    user = await repo.create_user(
+        email="bcrypt_test@example.com",
+        fname="Real",
+        lname="Bcrypt",
+        hashed_password=hashed,
+    )
+
+    # Stored hash must be a valid bcrypt hash (starts with $2b$)
+    assert user.password.startswith("$2b$")
+    # Real bcrypt verify must accept the original password
+    assert _bcrypt_verify(plain, user.password) is True
+    # Must reject a wrong password
+    assert _bcrypt_verify("wrongpassword", user.password) is False
+
+
+@pytest.mark.asyncio
+async def test_signin_real_bcrypt_hash(db_session: AsyncSession):
+    """Signin with a pre-stored real bcrypt hash succeeds at the repository
+    level, exercising the verify path without going through passlib's
+    broken CryptContext initialisation.
+    """
+    plain = "hunter2secure"
+    hashed = _bcrypt_hash(plain)
+
+    repo = UserRepository(db_session)
+    await repo.create_user(
+        email="realcrypt@example.com",
+        fname="Real",
+        lname="Crypt",
+        hashed_password=hashed,
+    )
+
+    user = await repo.get_user_by_email("realcrypt@example.com")
+    assert user is not None
+    assert _bcrypt_verify(plain, user.password) is True
+
+
+# ── 72-byte password limit (Issue 1) ─────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_signup_password_over_72_bytes_returns_422(db_session: AsyncSession, monkeypatch):
+    """A password whose UTF-8 encoding exceeds 72 bytes is rejected with 422.
+
+    bcrypt silently truncates passwords at 72 bytes; we block this at the
+    schema layer to prevent silent auth ambiguity.
+    """
+    client = _make_client(db_session, monkeypatch)
+    # 73 ASCII bytes — safe for any locale
+    long_password = "a" * 73
+    resp = client.post(
+        "/api/v1/signup",
+        json={
+            "fname": "Len",
+            "lname": "Test",
+            "email": "longpw@example.com",
+            "password": long_password,
+        },
+    )
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_signup_password_exactly_72_bytes_accepted(db_session: AsyncSession, monkeypatch):
+    """A password of exactly 72 bytes is accepted (boundary condition)."""
+    client = _make_client(db_session, monkeypatch)
+    resp = client.post(
+        "/api/v1/signup",
+        json={
+            "fname": "Exact",
+            "lname": "Bytes",
+            "email": "exact72@example.com",
+            "password": "a" * 72,
+        },
+    )
+    assert resp.status_code == 200
+
+
+# ── IntegrityError race-condition guard (Issue 2) ─────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_signup_integrity_error_returns_400(db_session: AsyncSession, monkeypatch):
+    """If the DB unique constraint fires (race condition), signup returns 400.
+
+    Simulates the scenario where user_exists() passes but the INSERT fails
+    on the unique email index — should produce 400, not 500.
+    """
+    client = _make_client(db_session, monkeypatch)
+
+    # Monkeypatch UserRepository.create_user to raise IntegrityError
+    async def raise_integrity(self, **kwargs):
+        raise IntegrityError("duplicate", {}, Exception("unique constraint"))
+
+    monkeypatch.setattr(auth_module.UserRepository, "create_user", raise_integrity)
+
+    resp = client.post(
+        "/api/v1/signup",
+        json={
+            "fname": "Race",
+            "lname": "Condition",
+            "email": "race@example.com",
+            "password": "validpass1",
+        },
+    )
+    assert resp.status_code == 400
+    assert "already registered" in resp.json()["detail"].lower()
