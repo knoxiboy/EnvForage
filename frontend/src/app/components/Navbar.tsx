@@ -113,7 +113,7 @@ export default function Navbar() {
 				<div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
 					<ThemeToggle />
 					<a
-						href="#"
+						href="https://discord.gg/N2GKNRzDV"
 						target="_blank"
 						rel="noreferrer"
 						style={{
