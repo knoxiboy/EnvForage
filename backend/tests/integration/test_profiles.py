@@ -221,7 +221,7 @@ async def test_create_profile_with_invalid_package_name_returns_422(client):
         "python_versions": ["3.11"],
         "packages": [
             {
-                "package_name": " ",
+                "package_name": "-torch",
                 "version_spec": "==2.3.0",
                 "is_optional": False,
                 "install_order": 1,
@@ -236,4 +236,3 @@ async def test_create_profile_with_invalid_package_name_returns_422(client):
     )
 
     assert response.status_code == 422
-    
