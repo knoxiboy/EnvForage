@@ -10,7 +10,16 @@ slot in by subclassing Source and yielding Package instances.
 """
 
 from __future__ import annotations
-import tomllib
+try:
+    import tomllib
+except ImportError:
+    try:
+        import tomli as tomllib
+    except ImportError:
+        try:
+            from pip._vendor import tomli as tomllib
+        except ImportError:
+            tomllib = None
 import json
 import re
 import subprocess
@@ -138,6 +147,10 @@ class ConfigFileSource(Source):
         self.name = f"pyproject:{self.path.name}"
 
     def packages(self) -> Iterator[Package]:
+        if tomllib is None:
+            raise RuntimeError(
+                "No TOML parsing library found. Please install 'tomli' or run with Python 3.11+."
+            )
         try:
             with open(self.path, "rb") as f:
                 data = tomllib.load(f)

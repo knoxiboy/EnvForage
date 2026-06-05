@@ -369,20 +369,57 @@ def verify(profile: str | None, output: str | None, quiet: bool) -> None:
     active_py = report.active_python
     py_executable = active_py.path if active_py else sys.executable
 
-    # 2. Run inline Python script to test torch import and CUDA
+    # Determine target framework based on profile
+    target_framework = "torch"
+    if profile:
+        p_lower = profile.lower()
+        if "tensorflow" in p_lower or "tf" in p_lower:
+            target_framework = "tensorflow"
+        elif "jax" in p_lower:
+            target_framework = "jax"
+
+    # 2. Run inline Python script to test framework import and CUDA/GPU
     inspector_script = (
         "import sys\n"
         "import json\n"
-        "result = {'import_ok': False, 'cuda_ok': False, 'error': None}\n"
+        "result = {'framework': 'PyTorch', 'import_ok': False, 'version': None, 'cuda_ok': False, 'cuda_version': None, 'error': None}\n"
+        f"target = '{target_framework}'\n"
         "try:\n"
-        "    import torch\n"
-        "    result['import_ok'] = True\n"
-        "    result['torch_version'] = torch.__version__\n"
-        "    try:\n"
+        "    if target == 'tensorflow':\n"
+        "        import tensorflow as tf\n"
+        "        result['framework'] = 'TensorFlow'\n"
+        "        result['import_ok'] = True\n"
+        "        result['version'] = tf.__version__\n"
+        "        gpus = tf.config.list_physical_devices('GPU')\n"
+        "        result['cuda_ok'] = len(gpus) > 0\n"
+        "        try:\n"
+        "            from tensorflow.python.platform import build_info as tf_build_info\n"
+        "            result['cuda_version'] = tf_build_info.build_info.get('cuda_version', 'unknown')\n"
+        "        except Exception:\n"
+        "            pass\n"
+        "    elif target == 'jax':\n"
+        "        import jax\n"
+        "        result['framework'] = 'JAX'\n"
+        "        result['import_ok'] = True\n"
+        "        result['version'] = jax.__version__\n"
+        "        try:\n"
+        "            devices = jax.devices()\n"
+        "            result['cuda_ok'] = any(d.platform == 'gpu' for d in devices)\n"
+        "            try:\n"
+        "                import jaxlib\n"
+        "                result['cuda_version'] = getattr(jaxlib, '__version__', 'unknown')\n"
+        "            except Exception:\n"
+        "                pass\n"
+        "        except Exception as e:\n"
+        "            result['cuda_ok'] = False\n"
+        "            result['error'] = f'JAX devices call failed: {str(e)}'\n"
+        "    else:\n"
+        "        import torch\n"
+        "        result['framework'] = 'PyTorch'\n"
+        "        result['import_ok'] = True\n"
+        "        result['version'] = torch.__version__\n"
         "        result['cuda_ok'] = torch.cuda.is_available()\n"
         "        result['cuda_version'] = torch.version.cuda\n"
-        "    except Exception as e:\n"
-        "        result['cuda_ok'] = False\n"
         "except Exception as e:\n"
         "    result['import_ok'] = False\n"
         "    result['error'] = f'{type(e).__name__}: {str(e)}'\n"
@@ -405,12 +442,13 @@ def verify(profile: str | None, output: str | None, quiet: bool) -> None:
         data = json.loads(proc.stdout.strip())
 
         # 3. Analyze checks
+        framework_name = data.get("framework", "PyTorch")
         if not data["import_ok"]:
             if not quiet:
                 _print_verification_summary(data, is_gpu_profile=False)
             res = {
                 "status": "FAIL",
-                "message": "PyTorch import failed — is it installed?",
+                "message": f"{framework_name} import failed — is it installed?",
                 "error": data["error"],
             }
             click.echo(json.dumps(res, indent=2))
@@ -428,14 +466,14 @@ def verify(profile: str | None, output: str | None, quiet: bool) -> None:
                 _print_verification_summary(data, is_gpu_profile=is_gpu_profile)
             res = {
                 "status": "FAIL",
-                "message": "PyTorch installed but CUDA not available",
-                "error": "torch.cuda.is_available() returned False",
+                "message": f"{framework_name} installed but CUDA not available",
+                "error": "GPU device check returned False",
             }
             click.echo(json.dumps(res, indent=2))
             sys.exit(1)
 
         # All required checks passed!
-        msg = "Environment works: PyTorch imported successfully"
+        msg = f"Environment works: {framework_name} imported successfully"
         if data["cuda_ok"]:
             msg += " with CUDA support"
         else:
@@ -476,14 +514,16 @@ def _print_verification_summary(data: dict, is_gpu_profile: bool) -> None:
     table.add_column("Status", width=12, justify="center")
     table.add_column("Details")
 
-    # PyTorch import check
+    framework = data.get("framework", "PyTorch")
+    version = data.get("version", "Unknown")
+
+    # Core import check
     if data.get("import_ok"):
-        torch_v = data.get("torch_version", "Unknown")
         table.add_row(
-            "PyTorch Core Import", "[bold green]PASS[/]", f"Framework loaded cleanly (v{torch_v})."
+            f"{framework} Core Import", "[bold green]PASS[/]", f"Framework loaded cleanly (v{version})."
         )
     else:
-        table.add_row("PyTorch Core Import", "[bold red]FAIL[/]", f"[red]{data.get('error')}[/]")
+        table.add_row(f"{framework} Core Import", "[bold red]FAIL[/]", f"[red]{data.get('error')}[/]")
 
     # CUDA compute engine check
     if data.get("cuda_ok"):
