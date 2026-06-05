@@ -135,7 +135,7 @@ class InMemoryBackend(RateLimitBackend):
         now = time.monotonic()
         empty_keys = [
             key
-            for key, timestamps in self._requests.items()
+            for key, timestamps in list(self._requests.items())
             if not timestamps or max(timestamps) < now - 300
         ]
         for key in empty_keys:
