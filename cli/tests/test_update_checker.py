@@ -6,6 +6,7 @@ import httpx
 from envforge_agent.utils import check_for_updates
 
 
+@patch("envforge_agent.__version__", "0.0.0")
 @patch("sys.argv", ["envforge"])
 @patch("httpx.Client")
 @patch("click.echo")
@@ -26,12 +27,14 @@ def test_update_available(mock_echo, mock_client_class) -> None:
 
     mock_echo.assert_called_once()
     assert "[!] A new version of envforge-agent is available: 99.9.9" in mock_echo.call_args[0][0]
+    assert mock_echo.call_args[1]["err"] is True
 
 
 @patch("sys.argv", ["envforge"])
 @patch("httpx.Client")
 @patch("click.echo")
 def test_no_update_available(mock_echo, mock_client_class) -> None:
+    from envforge_agent import __version__
     mock_client = MagicMock()
     mock_client_class.return_value.__enter__.return_value = mock_client
 
@@ -39,7 +42,7 @@ def test_no_update_available(mock_echo, mock_client_class) -> None:
     mock_response.status_code = 200
     mock_response.json.return_value = {
         "info": {
-            "version": "1.0.2"
+            "version": __version__
         }
     }
     mock_client.get.return_value = mock_response

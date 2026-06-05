@@ -31,7 +31,13 @@ def check_for_updates() -> None:
     from envforge_agent import __version__
 
     # Suppress update checks if quiet output is requested
-    if "--quiet" in sys.argv or "-q" in sys.argv:
+    if any(tok == "--quiet" or (tok.startswith("-") and "q" in tok.lstrip("-")) for tok in sys.argv):
+        return
+
+    try:
+        from packaging.version import InvalidVersion, Version
+    except ImportError:
+        # Skip the update check if packaging is not installed
         return
 
     url = "https://pypi.org/pypi/envforge-agent/json"
@@ -45,21 +51,19 @@ def check_for_updates() -> None:
             if not latest_version:
                 return
 
-            def parse_ver(v: str) -> tuple[int, ...]:
-                parts = []
-                for p in v.split("."):
-                    digits = "".join(c for c in p if c.isdigit())
-                    parts.append(int(digits) if digits else 0)
-                return tuple(parts)
+            try:
+                is_newer = Version(latest_version) > Version(__version__)
+            except InvalidVersion:
+                return
 
-            if parse_ver(latest_version) > parse_ver(__version__):
+            if is_newer:
                 click.echo(
                     f"\n[!] A new version of envforge-agent is available: {latest_version} (Current: {__version__})\n"
                     f"    Run 'pip install --upgrade envforge-agent' to update.\n",
                     err=True,
                 )
-    except Exception:
-        # Gracefully absorb all exceptions (JSONDecodeError, ConnectError, HTTPStatusError, etc.)
+    except (httpx.HTTPError, httpx.RequestError, ValueError, KeyError):
+        # Gracefully absorb all network/parsing exceptions (JSONDecodeError, ConnectError, HTTPStatusError, etc.)
         pass
 
 
