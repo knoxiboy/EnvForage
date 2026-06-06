@@ -199,8 +199,8 @@
 - [x] **Step 164: PR Label Manager Workflow** (Target: `.github/workflows/pr-label-manager.yml`)
 - [x] **Step 165: Stale Issue Watchdog Setup** (Target: `.github/workflows/issue-assignment-watchdog.yml`)
 - [x] **Step 166: Codeowners Enforcer Update** (Target: `.github/CODEOWNERS`)
-- [ ] **Step 167: Docker Buildx Multi-Arch CI Job** (Target: `.github/workflows/docker.yml`)
-- [ ] **Step 168: GHCR Deployment Pipeline** (Target: `.github/workflows/docker.yml`)
+- [x] **Step 167: Docker Buildx Multi-Arch CI Job** (Target: `.github/workflows/docker.yml`)
+- [x] **Step 168: GHCR Deployment Pipeline** (Target: `.github/workflows/docker.yml`)
 
 ## Milestone 15: K8s Deployment & Enterprise Scaling
 - [x] **Step 169: Multi-Stage Backend Dockerfile** (Target: `backend/Dockerfile`)
@@ -211,5 +211,5 @@
 - [x] **Step 174: K8s Deployment Manifests** (Target: `helm/envforge/templates/deployment.yaml`)
 - [x] **Step 175: K8s Service Manifests** (Target: `helm/envforge/templates/service.yaml`)
 - [x] **Step 176: K8s Ingress Controller Configuration** (Target: `helm/envforge/templates/ingress.yaml`)
-- [ ] **Step 177: Redis StatefulSet Manifest** (Target: `helm/envforge/templates/redis-statefulset.yaml`)
+- [x] **Step 177: Redis StatefulSet Manifest** (Target: `helm/envforge/templates/redis-statefulset.yaml`)
 - [ ] **Step 178: Postgres StatefulSet Manifest** (Target: `helm/envforge/templates/postgres-statefulset.yaml`)
