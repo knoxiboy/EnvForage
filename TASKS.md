@@ -77,7 +77,7 @@
 - [x] **Step 60: Diagnostics API Unit Tests** (Target: `backend/tests/api/test_compatibility_endpoints.py`)
 
 ## Milestone 6: Compatibility Matrix & Resolvers
-- [ ] **Step 61: JSON Matrix Asset Loader** (Target: `backend/app/compatibility/matrix/loader.py`)
+- [x] **Step 61: JSON Matrix Asset Loader** (Target: `backend/app/compatibility/matrix/loader.py`)
 - [x] **Step 62: Python Version Matrix Schemas** (Target: `backend/app/compatibility/matrix/python.py`)
 - [x] **Step 63: CUDA Architecture Matrix Schemas** (Target: `backend/app/compatibility/matrix/cuda.py`)
 - [x] **Step 64: ROCm Architecture Matrix Schemas** (Target: `backend/app/compatibility/matrix/rocm.py`)
