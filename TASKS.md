@@ -57,7 +57,7 @@
 - [x] **Step 42: Telemetry Connection Status Persistence** (Target: `frontend/src/context/TelemetryContext.tsx`)
 - [x] **Step 43: Agent Status Navbar Indicator** (Target: `frontend/src/app/components/Navbar.tsx`)
 - [x] **Step 44: Integrate Terminal Loader inside Diagnose View** (Target: `frontend/src/app/diagnose/page.tsx`)
-- [ ] **Step 45: Interactive Diff Viewer for Configuration** (Target: `frontend/src/components/DiffViewer.tsx`)
+- [x] **Step 45: Interactive Diff Viewer for Configuration** (Target: `frontend/src/components/DiffViewer.tsx`)
 - [x] **Step 46: Hardware Diagnostics Export Center** (Target: `frontend/src/app/diagnose/page.tsx`)
 - [x] **Step 47: Connect Loader to Generator Engine** (Target: `frontend/src/app/generate/page.tsx`)
 - [ ] **Step 48: UX Loading Skeletons** (Target: `frontend/src/components/ui/Skeleton.tsx`)
