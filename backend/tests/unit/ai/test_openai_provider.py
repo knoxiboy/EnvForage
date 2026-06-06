@@ -106,6 +106,7 @@ async def test_openai_stream_502_bad_gateway_retry_and_exhaustion():
 
         assert "HTTP 502" in str(exc_info.value)
         assert "retry attempts exhausted" in str(exc_info.value)
+        assert "Bad Gateway" in str(exc_info.value)
         assert mock_stream_call.call_count == 3
         assert mock_sleep.call_count == 2
         mock_sleep.assert_has_calls([call(1.0), call(2.0)])
@@ -142,6 +143,7 @@ async def test_openai_stream_503_service_unavailable_retry_and_exhaustion():
 
         assert "HTTP 503" in str(exc_info.value)
         assert "retry attempts exhausted" in str(exc_info.value)
+        assert "Service Unavailable" in str(exc_info.value)
         assert mock_stream_call.call_count == 3
         assert mock_sleep.call_count == 2
         mock_sleep.assert_has_calls([call(1.0), call(2.0)])
