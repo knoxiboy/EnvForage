@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Any, Literal
 
 from celery import Celery
 
@@ -28,8 +28,6 @@ celery_app.conf.update(
     enable_utc=True,
 )
 
-
-from typing import Any
 
 @celery_app.task(name="run_diagnose_task")  # type: ignore
 def run_diagnose_task(report_id: str, report_data: dict[str, Any], target_os: Literal['LINUX', 'WIN', 'WSL']) -> dict[str, Any]:
