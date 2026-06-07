@@ -91,7 +91,9 @@ async def get_compatibility_summary(db: DB) -> dict[str, Any]:
     try:
         python_res = await db.execute(select(PythonMatrixDBModel))
         python_entries = python_res.scalars().all()
-    except Exception:
+    except Exception as e:
+        import logging
+        logging.error(f"Python summary DB fetch: {e}")
         pass
 
     if python_entries:
