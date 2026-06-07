@@ -32,8 +32,9 @@ def recommend_profiles(report: DiagnosticReportSchema) -> dict[str, Any]:
     if total_ram <= 0:
         raise ValueError(f"Invalid RAM value: total_gb={total_ram}. RAM must be a positive number.")
 
-    if max_vram is not None and max_vram <= 0:
-        raise ValueError(f"Invalid VRAM value: vram_gb={max_vram}. VRAM must be a positive number.")
+    for gpu in report.gpus:
+        if gpu.vram_gb is not None and gpu.vram_gb <= 0:
+            raise ValueError(f"Invalid VRAM value: vram_gb={gpu.vram_gb}. VRAM must be a positive number.")
 
     if total_ram < 8:
         warnings.append(
