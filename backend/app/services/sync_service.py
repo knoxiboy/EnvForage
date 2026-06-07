@@ -268,7 +268,9 @@ async def sync_nvidia_cuda_releases(db: AsyncSession) -> None:
                         latest_existing = max(
                             cuda_rows, key=lambda r: Version(r.cuda_version)
                         )
-                    except Exception:
+                    except Exception as e:
+                    import logging
+                    logging.error(f"Sync error 4: {e}")
                         latest_existing = cuda_rows[0]
 
                 min_linux = (
