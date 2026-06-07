@@ -28,6 +28,27 @@ export default function ProfileDetailPage() {
 			try {
 				const data = await api.getProfile(slug);
 				setProfile(data);
+				const recentProfiles = JSON.parse(
+				localStorage.getItem("recentProfiles") || "[]"
+				);
+
+				const filteredProfiles = recentProfiles.filter(
+				(item: { slug: string }) => item.slug !== data.slug
+				);
+
+				const updatedProfiles = [
+				{
+					slug: data.slug,
+					name: data.name,
+					description: data.description,
+				},
+				...filteredProfiles,
+				].slice(0, 5);
+
+				localStorage.setItem(
+				"recentProfiles",
+				JSON.stringify(updatedProfiles)
+				);
 			} catch (err) {
 				setError(err instanceof Error ? err.message : "Failed to load profile");
 			} finally {
