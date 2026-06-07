@@ -122,7 +122,9 @@ async def test_engine():
                 arr = json.loads(arr_str)
                 try:
                     item = json.loads(item_str)
-                except Exception:
+                except Exception as e:
+                import logging
+                logging.error(f"Test fixture error: {e}")
                     item = item_str
 
                 if isinstance(item, list):
