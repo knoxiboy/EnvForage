@@ -29,6 +29,7 @@ TEMPLATE_MAP: dict[str, str] = {
     "requirements.txt": "config/requirements.j2",
     "Dockerfile": "config/dockerfile.j2",
     "docker-compose.yml": "config/docker-compose.yml.j2",
+    "Makefile": "config/makefile.j2",
     "devcontainer.json": "config/devcontainer.j2",
     "verify.sh": "verify/verify_generic.sh.j2",
     "verify_torch.sh": "verify/verify_torch.sh.j2",
