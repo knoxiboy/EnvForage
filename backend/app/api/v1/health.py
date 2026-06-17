@@ -13,9 +13,57 @@ from sqlalchemy import text
 from app.api.deps import DB
 from app.cache import get_redis_client
 
+import datetime
+import time
+import psutil
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+async def ping_database(db: DB) -> dict:
+    """Check database availability and latency."""
+    start = time.perf_counter()
+    try:
+        await db.execute(text("SELECT 1"))
+        latency = (time.perf_counter() - start) * 1000.0
+        return {"status": "up", "latency_ms": latency}
+    except Exception as exc:
+        return {"status": "down", "error": str(exc)}
+
+
+async def ping_redis() -> dict:
+    """Check Redis availability and latency."""
+    start = time.perf_counter()
+    try:
+        redis = await get_redis_client()
+        if redis:
+            await redis.ping()
+            latency = (time.perf_counter() - start) * 1000.0
+            return {"status": "up", "latency_ms": latency}
+        else:
+            return {"status": "down", "error": "Redis not configured"}
+    except Exception as exc:
+        return {"status": "down", "error": str(exc)}
+
+
+def get_system_metrics() -> dict:
+    """Retrieve system resource usage metrics."""
+    cpu = psutil.cpu_percent()
+    mem = psutil.virtual_memory()
+    disk = psutil.disk_usage("/")
+    return {
+        "cpu_percent": cpu,
+        "memory": {
+            "total_gb": mem.total / (1024**3),
+            "used_percent": mem.percent
+        },
+        "disk": {
+            "total_gb": disk.total / (1024**3),
+            "used_percent": disk.percent
+        }
+    }
 
 
 @router.get(
@@ -66,4 +114,43 @@ async def health_check(db: DB, response: Response) -> dict:
         "status": overall,
         "db": db_status,
         "cache": cache_status,
+    }
+
+
+@router.get(
+    "/health/deep",
+    summary="Deep health check",
+    description="Detailed status of all internal components and host resources.",
+    tags=["Health"],
+    responses={
+        200: {"description": "All components healthy"},
+        503: {"description": "One or more components degraded"},
+    },
+)
+async def deep_health_check(db: DB, response: Response) -> dict:
+    """Detailed health check validating resources and dependency services."""
+    db_status = await ping_database(db)
+    redis_status = await ping_redis()
+    metrics = get_system_metrics()
+
+    status_str = "healthy"
+    
+    # Degrade if DB or Redis is down, or if system resources are exhausted
+    if (
+        db_status["status"] == "down"
+        or redis_status["status"] == "down"
+        or metrics["memory"]["used_percent"] > 95.0
+        or metrics["disk"]["used_percent"] > 95.0
+    ):
+        status_str = "degraded"
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+
+    return {
+        "status": status_str,
+        "timestamp": datetime.datetime.utcnow().isoformat(),
+        "components": {
+            "database": db_status,
+            "redis": redis_status,
+        },
+        "metrics": metrics,
     }

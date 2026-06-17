@@ -17,7 +17,7 @@ RUN groupadd --system envforage && \
 COPY pyproject.toml ./
 
 # Install Python dependencies
-RUN pip install --no-cache-dir --upgrade pip \
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
     && pip install --no-cache-dir .
 
 # Copy application code
