@@ -1,8 +1,8 @@
 # EnvForage — Template System Design
 
-> **Version**: 1.0.0
-> **Status**: Planning
-> **Last Updated**: 2026-05-06
+> **Version**: 2.0.0
+> **Status**: Production
+> **Last Updated**: 2026-06-18
 
 ---
 

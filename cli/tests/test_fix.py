@@ -270,7 +270,7 @@ class TestFixMalformedReport:
     def test_fix_exits_on_missing_required_fields(self, tmp_path):
         """JSON missing required DiagnosticReport fields should exit 1."""
         bad_report = tmp_path / "incomplete.json"
-        bad_report.write_text(json.dumps({"agent_version": "1.0.0"}), encoding="utf-8")
+        bad_report.write_text(json.dumps({"agent_version": "2.0.0"}), encoding="utf-8")
 
         runner = CliRunner()
         result = runner.invoke(

@@ -16,7 +16,7 @@ def builder():
 @pytest.fixture
 def sample_diagnostic():
     return {
-        "agent_version": "1.0.0",
+        "agent_version": "2.0.0",
         "os": {
             "name": "Ubuntu 22.04",
             "version": "22.04",

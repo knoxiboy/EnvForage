@@ -6,7 +6,6 @@ Integration tests for the `envforage rollback` CLI command.
 from __future__ import annotations
 
 import os
-import shutil
 from unittest.mock import patch
 from click.testing import CliRunner
 

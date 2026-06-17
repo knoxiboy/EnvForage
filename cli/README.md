@@ -47,7 +47,7 @@ All commands output `DiagnosticReport` JSON compatible with `POST /api/v1/diagno
 
 ```json
 {
-  "agent_version": "1.0.0",
+  "agent_version": "2.0.0",
   "os": { "name": "Ubuntu 22.04", "version": "22.04", "architecture": "x86_64" },
   "cpu": { "brand": "Intel Core i9-13900K", "cores": 24, "threads": 32 },
   "ram": { "total_gb": 64.0, "available_gb": 48.2 },

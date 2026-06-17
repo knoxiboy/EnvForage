@@ -2,7 +2,7 @@
 
 > **Feature**: Script Generation
 > **Status**: ✅ Implemented (Phase 1)
-> **Last Updated**: 2026-05-06
+> **Last Updated**: 2026-06-18
 
 ---
 
@@ -94,7 +94,7 @@ All Jinja2 templates receive these variables via `TemplateContext.to_dict()`:
 | `packages[].pip_spec` | `str` | `"torch==2.1.2+cu118"` |
 | `warnings[]` | `list[str]` | `["WSL2 requires host NVIDIA driver"]` |
 | `generated_at` | `str` | `"2026-05-06 14:30 UTC"` |
-| `envforage_version` | `str` | `"1.0.0"` |
+| `envforage_version` | `str` | `"2.0.0"` |
 
 ---
 

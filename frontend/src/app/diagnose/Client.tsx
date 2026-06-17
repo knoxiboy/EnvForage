@@ -199,7 +199,7 @@ export default function DiagnosePage() {
 					<textarea
 						value={jsonInput}
 						onChange={(e) => setJsonInput(e.target.value)}
-						placeholder='{\n  "agent_version": "1.0.0",\n  "os": {\n    "name": "Ubuntu 22.04"...\n}'
+						placeholder='{\n  "agent_version": "2.0.0",\n  "os": {\n    "name": "Ubuntu 22.04"...\n}'
 						style={{
 							width: "100%",
 							height: "300px",

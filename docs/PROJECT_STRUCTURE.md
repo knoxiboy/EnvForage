@@ -1,8 +1,8 @@
 # EnvForage — Project Structure
 
-> **Version**: 1.0.0
+> **Version**: 2.0.0
 > **Status**: Production
-> **Last Updated**: 2026-05-21
+> **Last Updated**: 2026-06-18
 
 This document defines the canonical folder structure for EnvForage.
 All contributors should respect this structure and place new files accordingly.
@@ -24,7 +24,6 @@ EnvForage/
 ├── docs/                              # All project documentation
 │   ├── ARCHITECTURE.md
 │   ├── FEATURES.md
-│   ├── ROADMAP.md
 │   ├── WORKFLOW.md
 │   ├── API_DESIGN.md
 │   ├── COMPATIBILITY_ENGINE.md

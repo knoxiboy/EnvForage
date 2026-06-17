@@ -54,7 +54,8 @@ class OfflineSyncQueue:
                 return [dict(row) for row in cursor.fetchall()]
 
     def mark_success(self, item_ids: List[int]):
-        if not item_ids: return
+        if not item_ids:
+            return
         with self._lock:
             with sqlite3.connect(self.db_path) as conn:
                 placeholders = ','.join(['?'] * len(item_ids))
@@ -64,7 +65,8 @@ class OfflineSyncQueue:
                 )
 
     def mark_failed(self, item_ids: List[int]):
-        if not item_ids: return
+        if not item_ids:
+            return
         with self._lock:
             with sqlite3.connect(self.db_path) as conn:
                 placeholders = ','.join(['?'] * len(item_ids))

@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     debug: bool = False
     secret_key: str = DEV_SECRET_KEY
     app_name: str = "EnvForage"
-    app_version: str = "1.0.0"
+    app_version: str = "2.0.0"
     custom_template_dir: Path | None = None
 
     # ── Graceful shutdown ─────────────────────────────────────

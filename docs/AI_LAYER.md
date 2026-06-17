@@ -1,8 +1,8 @@
 # EnvForage — AI Layer Design
 
-> **Version**: 1.0.0
-> **Status**: Phase 4 — In Progress
-> **Last Updated**: 2026-05-14
+> **Version**: 2.0.0
+> **Status**: Stable v2.0.0
+> **Last Updated**: 2026-06-18
 
 ---
 

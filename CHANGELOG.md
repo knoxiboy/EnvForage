@@ -4,8 +4,27 @@ All notable changes to this project will be documented in this file.
  
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
- 
-## [Unreleased]
+
+## [2.0.0] - 2026-06-18
+
+### Added
+- **Database-Backed Compatibility Matrix**: Replaced static YAML compatibility files with a dynamic database schema, robust CLI matrix syncing, and a matrix synchronization service.
+- **AST-Based Script Safety Gates**: Implemented abstract syntax tree (AST) based shell script safety validation and integrated ShellCheck static analysis to automatically scan and block dangerous/destructive commands.
+- **Environment Validation Module**: Added validation checks in both the CLI and backend to verify system prerequisites and tool chains.
+- **Recommendation Engine**: Implemented an automated ML framework and driver recommendation module to suggest optimal profiles based on diagnostic reports.
+- **Sentry Error Tracking**: Integrated Sentry error reporting, error boundaries, and environment-gated logging into the Next.js frontend.
+- **SEO Enhancements**: Added canonical url route tags, automated sitemap.xml, and robots.txt generation.
+- **Get Started Installation Wizard**: Designed and implemented an interactive onboarding and installation page in the frontend web application.
+- **Favorites Support**: Added support for marking ML environment profiles as favorites for quick retrieval.
+- **Diagnostics Formatting**: Added a new `--format markdown` flag output option to `envforge diagnose` for formatted CLI report output.
+- **Automatic Retries**: Implemented client-side API call retries with exponential backoff for GET requests.
+- **Security Validation and Hardening**: Added database-backed admin API key validation, password strength validation, rate limiting to authentication endpoints, and an environment startup guard for `SECRET_KEY`.
+
+### Fixed
+- **Cache Mismatch Engine Crashes**: Resolved several cache-type crashes in `update_profile()` and `generate_scripts()`.
+- **Worker Async Persistence**: Made S3 integration, audit logging, and celery status queries fully async and robust against failure.
+- **Safety Filters**: Hardened AST-based shell script safety filters against provider errors and unbounded stream buffer leaks.
+- **DoS Mitigation in Schemas**: Capped maximum list lengths of GPUs and python installations in `DiagnosticReportSchema` to prevent oversized JSON denial-of-service vectors.
  
 
 ## [1.0.2] - 2026-06-02

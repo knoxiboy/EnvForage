@@ -37,7 +37,6 @@ By combining **hardware diagnostics, compatibility-aware version resolution, tem
 - [🚀 Steps To Run](#steps-to-run)
 - [📚 Documentation Links](#documentation-links)
 - [🤝 Contributing](#contributing)
-- [🗺️ Roadmap](#roadmap)
 - [⚖️ License](#license)
 
 ----
@@ -249,20 +248,7 @@ Before submitting a contribution, please ensure that all tests pass and relevant
 
 Thank you for helping make EnvForage more reliable, safe, and developer-friendly!
 
-----
 
-## Roadmap
-
-- **Phase 1**: Core Backend (Compatibility Engine, Template Engine) ✅
-- **Phase 2**: CLI Diagnostic Agent (`envforage`) ✅
-- **Phase 3**: Next.js Frontend Web App ✅
-- **Phase 4**: AI Troubleshooting Layer ✅
-- **Phase 5**: Environment Verification ✅
-- **Phase 6**: Polish & Production Readiness ✅
-
-🗺️ See the full [ROADMAP.md](./docs/ROADMAP.md) for details.
-
-----
 
 ## License
 

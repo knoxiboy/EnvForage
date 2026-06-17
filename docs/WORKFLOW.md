@@ -1,8 +1,8 @@
 # EnvForage — Workflow Documentation
 
-> **Version**: 1.0.0
-> **Status**: Phase 1 & 3 Implemented
-> **Last Updated**: 2026-05-14
+> **Version**: 2.0.0
+> **Status**: Stable v2.0.0
+> **Last Updated**: 2026-06-18
 
 ---
 
@@ -117,7 +117,7 @@ Select Target Profile from dropdown → Click "Run Check"
     ▼
 POST /api/v1/diagnose
 Body: DiagnosticReportSchema {
-  "agent_version": "1.0.0",
+  "agent_version": "2.0.0",
   "os": { "name": "Ubuntu 22.04", "version": "22.04", "architecture": "x86_64" },
   "cpu": { "brand": "Intel Core i9", "cores": 12, "threads": 24 },
   "ram": { "total_gb": 32.0, "available_gb": 20.0 },
@@ -382,7 +382,4 @@ pytest tests/unit/ -v
 | Unit test | `backend/tests/unit/` |
 | Integration test | `backend/tests/integration/` |
 
-### Documentation Rule
-
-> Every implemented feature must have its status updated in `docs/FEATURES.md`
-> and `docs/ROADMAP.md` before the PR is merged.
+> Every implemented feature must have its status updated in `docs/FEATURES.md` before the PR is merged.

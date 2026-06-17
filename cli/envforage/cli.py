@@ -392,7 +392,7 @@ async def _send_report(report: DiagnosticReport, api_url: str, quiet: bool) -> N
                 click.echo(json.dumps(result, indent=2))
             return
 
-        except (httpx.ConnectError, httpx.TimeoutException) as e:
+        except (httpx.ConnectError, httpx.TimeoutException):
             if attempt < max_attempts:
                 delay = delays[attempt - 1]
                 if not quiet:

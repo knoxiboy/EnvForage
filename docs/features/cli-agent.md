@@ -1,8 +1,8 @@
 # CLI Diagnostic Agent — Feature Deep-Dive
 
 > **Feature**: CLI Diagnostic Agent (`envforage`)
-> **Status**: 🔲 Planned (Phase 2)
-> **Last Updated**: 2026-05-06
+> **Status**: ✅ Implemented
+> **Last Updated**: 2026-06-18
 
 ---
 
@@ -54,7 +54,7 @@ and serves as the contract between the CLI agent and the API.
 
 ```python
 class DiagnosticReportSchema(BaseModel):
-    agent_version: str            # "1.0.0"
+    agent_version: str            # "2.0.0"
     os: OSInfo
     cpu: CPUInfo
     ram: RAMInfo

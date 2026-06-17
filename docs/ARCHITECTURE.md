@@ -1,8 +1,8 @@
 # EnvForage — System Architecture
 
-> **Version**: 1.0.0
-> **Status**: Phase 1 & 3 Implemented
-> **Last Updated**: 2026-05-14
+> **Version**: 2.0.0
+> **Status**: Stable v2.0.0
+> **Last Updated**: 2026-06-18
 
 > **Implementation Coverage**: Backend API, Compatibility Engine, Template Engine, Database layer, and Frontend Web App (Phase 3) are fully implemented. CLI Agent (Phase 2) pending.
 
@@ -258,7 +258,6 @@ FastAPI → Kubernetes via Helm chart (`helm/envforage/`)
 ## 7. Related Documents
 
 - [`FEATURES.md`](./FEATURES.md) — Feature specifications with implementation status
-- [`ROADMAP.md`](./ROADMAP.md) — Development phases
 - [`API_DESIGN.md`](./API_DESIGN.md) — Endpoint specifications
 - [`DATABASE_SCHEMA.md`](./DATABASE_SCHEMA.md) — PostgreSQL schema
 - [`COMPATIBILITY_ENGINE.md`](./COMPATIBILITY_ENGINE.md) — Version logic
