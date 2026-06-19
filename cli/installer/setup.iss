@@ -415,10 +415,13 @@ begin
 end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  ErrorCode: Integer;
 begin
   if CurUninstallStep = usPostUninstall then
   begin
     RemoveFromPath(ExpandConstant('{app}'), True);
     RemoveFromPath(ExpandConstant('{app}'), False);
+    ShellExec('open', 'https://envforage.xyz/uninstall', '', '', SW_SHOWNORMAL, ewNoWait, ErrorCode);
   end;
 end;
