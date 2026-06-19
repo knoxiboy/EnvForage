@@ -24,6 +24,7 @@ export default function Navbar() {
 		{ name: "Diagnose", path: "/diagnose" },
 		{ name: "AI Troubleshoot", path: "/troubleshoot" },
 		{ name: "Dependencies", path: "/dependencies" },
+		{ name: "Docs", path: "/docs" },
 	];
 
 	return (
