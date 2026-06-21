@@ -112,7 +112,7 @@ class AITroubleshootService:
         # ── Step 3: Safety filter ─────────────────────────────────────────
         safety_violation: str | None = None
         try:
-            self._validate_response_safety(llm_result)
+            await self._validate_response_safety(llm_result)
         except SafetyViolationError as exc:
             safety_violation = str(exc)
             latency_ms = int((time.monotonic() - start_time) * 1000)
@@ -209,8 +209,16 @@ class AITroubleshootService:
         db: AsyncSession,
     ) -> AsyncIterator[str]:
         """
-        Stream the AI troubleshooting response with safety validation.
+        Stream the AI troubleshooting response with real-time safety checks.
+
+        Chunks are yielded immediately as they arrive from the LLM provider.
+        Each chunk is checked against FORBIDDEN_PATTERNS in real-time.
+        A full safety validation runs after the stream completes.
         """
+        import json as _json
+
+        from app.templates.safety import FORBIDDEN_PATTERNS
+
         session_id = str(uuid.uuid4())
         start_time = time.monotonic()
         input_hash = self._hash_input(request)
@@ -225,9 +233,14 @@ class AITroubleshootService:
 
         logger.info("Starting troubleshoot stream (provider=%s)", provider_name)
 
+        import re
+        compiled_patterns = [(re.compile(p, re.IGNORECASE), desc) for p, desc in FORBIDDEN_PATTERNS]
+
         chunks: list[str] = []
         _stream_buffer_limit = 512 * 1024  # 512 KB
         _buffer_size = 0
+        safety_aborted = False
+
         async for chunk in provider.stream(
             system_prompt=TROUBLESHOOT_SYSTEM_PROMPT,
             user_message=user_message,
@@ -235,16 +248,41 @@ class AITroubleshootService:
         ):
             _buffer_size += len(chunk.encode())
             if _buffer_size > _stream_buffer_limit:
-                logger.warning("Stream buffer limit exceeded for session %s", session_id)
-                yield '{"error":"STREAM_LIMIT_EXCEEDED","message":"Response too large — blocked by safety limit."}'
+                logger.warning(
+                    "Stream buffer limit exceeded for session %s", session_id
+                )
+                yield _json.dumps({
+                    "error": "STREAM_LIMIT_EXCEEDED",
+                    "message": "Response too large — blocked by safety limit.",
+                })
                 return
-            chunks.append(chunk)
 
+            # Real-time safety: check each chunk against forbidden patterns
+            for pattern, description in compiled_patterns:
+                if pattern.search(chunk):
+                    logger.warning(
+                        "Real-time safety violation in chunk (session %s): %s",
+                        session_id, description,
+                    )
+                    safety_aborted = True
+                    yield _json.dumps({
+                        "error": "SAFETY_VIOLATION",
+                        "message": "Response blocked by real-time safety filter.",
+                    })
+                    break
+
+            if safety_aborted:
+                return
+
+            chunks.append(chunk)
+            yield chunk
+
+        # Post-stream full safety validation
         full_response = "".join(chunks)
 
         try:
             llm_result = TroubleshootResponse.model_validate_json(full_response)
-            self._validate_response_safety(llm_result)
+            await self._validate_response_safety(llm_result)
         except SafetyViolationError as exc:
             latency_ms = int((time.monotonic() - start_time) * 1000)
             await self._log_audit(
@@ -257,12 +295,14 @@ class AITroubleshootService:
                 tokens_used=0,
                 latency_ms=latency_ms,
             )
-            logger.warning("Safety violation in streamed response: %s", exc)
-            yield (
-                '{"error":"SAFETY_VIOLATION",'
-                '"message":"Response blocked by safety filter."}'
-            )
+            logger.warning("Post-stream safety violation: %s", exc)
+            yield _json.dumps({
+                "error": "SAFETY_VIOLATION",
+                "message": "Response blocked by post-stream safety filter.",
+            })
             return
+        except Exception:
+            logger.exception("Failed to validate streamed response")
 
         model_name = getattr(provider, "model", "unknown")
         persist_failed = False
@@ -290,19 +330,16 @@ class AITroubleshootService:
             latency_ms=latency_ms,
         )
 
-        for chunk in chunks:
-            yield chunk
-
     async def _fetch_session_history(
         self,
         db: AsyncSession,
-        session_id: str,
+        session_id: uuid.UUID,
     ) -> list[AISuggestion]:
         """Fetch previous AI suggestions for a given session ID."""
         try:
             stmt = (
                 select(AISuggestion)
-                .where(AISuggestion.session_id == uuid.UUID(session_id))
+                .where(AISuggestion.session_id == session_id)
                 .order_by(AISuggestion.step_number.asc())
             )
             result = await db.execute(stmt)
@@ -333,15 +370,15 @@ class AITroubleshootService:
         raw = request.model_dump_json()
         return hashlib.sha256(raw.encode()).hexdigest()[:64]
 
-    def _validate_response_safety(self, response: TroubleshootResponse) -> None:
+    async def _validate_response_safety(self, response: TroubleshootResponse) -> None:
         """Run all text fields through the template SafetyFilter."""
-        validate_rendered_output(response.root_cause, "ai_root_cause")
+        await validate_rendered_output(response.root_cause, "ai_root_cause")
 
         for fix in response.suggested_fixes:
-            validate_rendered_output(fix.title, "ai_fix_title")
-            validate_rendered_output(fix.description, "ai_fix_description")
+            await validate_rendered_output(fix.title, "ai_fix_title")
+            await validate_rendered_output(fix.description, "ai_fix_description")
             for cmd in fix.safe_commands:
-                validate_rendered_output(cmd, "ai_safe_command")
+                await validate_rendered_output(cmd, "ai_safe_command")
 
     async def _persist_session(
         self,
