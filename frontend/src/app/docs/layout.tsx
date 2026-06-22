@@ -83,7 +83,9 @@ const docsNavigation: NavSection[] = [
 ];
 
 const versions = [
-	{ id: "v2.0.0", label: "v2.0.0 (Latest)" },
+	{ id: "v2.2.0", label: "v2.2.0 (Latest)" },
+	{ id: "v2.1.0", label: "v2.1.0" },
+	{ id: "v2.0.0", label: "v2.0.0" },
 	{ id: "v1.9.0", label: "v1.9.0" },
 	{ id: "v1.8.0", label: "v1.8.0" },
 ];
@@ -94,7 +96,7 @@ export default function DocsLayout({
 	children: React.ReactNode;
 }) {
 	const pathname = usePathname();
-	const [selectedVersion, setSelectedVersion] = useState("v2.0.0");
+	const [selectedVersion, setSelectedVersion] = useState("v2.2.0");
 	const [isVersionDropdownOpen, setIsVersionDropdownOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
