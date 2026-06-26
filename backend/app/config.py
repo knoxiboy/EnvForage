@@ -293,13 +293,20 @@ class Settings(BaseSettings):
 
             # Validate ADMIN_API_KEY is configured
             if not self.admin_api_key or self.admin_api_key.strip() == "":
-                # For dummy deployments, just skip this error
-                pass
+                raise ValueError(
+                    f"ADMIN_API_KEY is required when environment='{self.environment}'. "
+                    "The admin API endpoints would otherwise be reachable without "
+                    "authentication. Generate a strong value with: "
+                    'python -c "from secrets import token_urlsafe; print(token_urlsafe(32))"'
+                )
 
             # Validate ADMIN_API_KEY has minimum length (32 characters for security)
-            if len(self.admin_api_key) > 0 and len(self.admin_api_key) < 32:
-                # For dummy deployments, just skip this error
-                pass
+            if len(self.admin_api_key) < 32:
+                raise ValueError(
+                    f"ADMIN_API_KEY must be at least 32 characters when "
+                    f"environment='{self.environment}'. Generate a strong value with: "
+                    'python -c "from secrets import token_urlsafe; print(token_urlsafe(32))"'
+                )
 
         return self
 
