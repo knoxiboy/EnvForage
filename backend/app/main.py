@@ -12,6 +12,7 @@ import structlog
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
@@ -123,14 +124,18 @@ def create_app() -> FastAPI:
     # This keeps API error formatting and logging behavior consistent
     # across the application through a single implementation.
     register_exception_handlers(app)
-    # ── CORS ─────────────────────────────────────────────────
+    # ── CORS & Security ──────────────────────────────────────
+    if _is_prod:
+        # Enforce HTTPS redirects in production
+        app.add_middleware(HTTPSRedirectMiddleware)
 
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.allowed_origins_list,
         allow_credentials=False,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+        allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With", "X-API-Version"],
+        max_age=86400,
     )
     app.add_middleware(PayloadSizeLimitMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
