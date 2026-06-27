@@ -47,3 +47,7 @@ frontend:
   tag: latest
   pullPolicy: IfNotPresent
   apiUrl: "/api/v1"
+
+networkPolicy:
+  enabled: true
+  dnsNamespace: kube-system
