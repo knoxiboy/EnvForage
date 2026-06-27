@@ -64,6 +64,7 @@ class RenderResult:
 
     filename: str
     content: str
+    security_score: str = "Low"
     size_bytes: int = field(init=False)
 
     def __post_init__(self) -> None:
