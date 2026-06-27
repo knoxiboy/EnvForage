@@ -200,3 +200,24 @@ def run_diagnose_task(
     )
 
     return response.model_dump()
+
+
+@celery_app.task(name="generate_scripts_task")  # type: ignore[untyped-decorator]
+def generate_scripts_task(job_id: str, profile_slug: str, request_dict: dict[str, Any]) -> dict[str, Any]:
+    """
+    Background worker process to resolve constraints and generate scripts.
+    """
+    import asyncio
+    import uuid
+
+    from app.database import AsyncSessionLocal
+    from app.schemas.script import GenerationRequest
+    from app.services.script_service import execute_generation_job
+
+    async def _execute() -> None:
+        async with AsyncSessionLocal() as db:
+            request = GenerationRequest(**request_dict)
+            await execute_generation_job(db, uuid.UUID(job_id), profile_slug, request)
+
+    asyncio.run(_execute())
+    return {"status": "processing_completed"}

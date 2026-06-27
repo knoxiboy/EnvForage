@@ -34,17 +34,16 @@ def _stream_zip(buffer: io.BytesIO) -> Iterator[bytes]:
 @router.post(
     "/scripts/generate",
     response_model=GenerationResponse,
-    status_code=201,
-    summary="Generate environment setup scripts",
+    status_code=202,
+    summary="Generate environment setup scripts (Async)",
     description=(
-        "Generate platform-specific setup scripts for an environment profile "
-        "after validating compatibility constraints."
+        "Submits a job to generate platform-specific setup scripts for an "
+        "environment profile. Returns a job ID for polling."
     ),
     tags=["Scripts"],
     responses={
-        201: {"description": "Scripts generated successfully"},
+        202: {"description": "Script generation job submitted successfully"},
         404: {"description": "Profile not found"},
-        409: {"description": "Compatibility validation failed"},
         422: {"description": "Request validation error"},
     },
 )
@@ -54,19 +53,13 @@ async def generate_scripts(
     _rate_limit: None = Depends(general_rate_limit),
 ) -> GenerationResponse:
     """
-    Generate a set of setup scripts for a given profile and target configuration.
-
-    The Compatibility Engine validates all version constraints before rendering.
-    Any incompatibility is returned as a structured 409 error.
+    Submit a job to generate setup scripts.
+    The task is executed in the background by Celery.
     """
-    # Load profile
-    # Fetch ORM object directly — NOT from cache. script_service.generate_scripts()
-    # needs a real SQLAlchemy model (not a cached dict).
     db_result = await db.execute(
         select(EnvironmentProfile)
         .where(EnvironmentProfile.slug == request.profile_id)
         .where(EnvironmentProfile.deleted_at.is_(None))
-        .options(selectinload(EnvironmentProfile.packages))
     )
     profile = db_result.scalar_one_or_none()
     if profile is None:
@@ -80,41 +73,82 @@ async def generate_scripts(
             },
         )
 
-    # Generate (may raise compatibility errors)
-    try:
-        result = await script_service.generate_scripts(db, profile, request)
-    except UnsupportedOSError as e:
-        raise HTTPException(
-            status_code=409,
-            detail={
-                "error": {
-                    "code": "UNSUPPORTED_OS",
-                    "message": str(e),
-                    "details": {
-                        "profile": e.profile_slug,
-                        "requested_os": e.requested_os,
-                        "supported_os": e.supported_os,
-                    },
-                }
-            },
-        ) from e
-    except (IncompatibilityError, UnknownVersionError) as e:
-        raise HTTPException(
-            status_code=409,
-            detail={
-                "error": {
-                    "code": "INCOMPATIBLE_VERSIONS",
-                    "message": str(e),
-                    "details": (
-                        e.to_dict()
-                        if isinstance(e, IncompatibilityError)
-                        else {"component": e.component, "version": e.version}
-                    ),
-                }
-            },
-        ) from e
+    return await script_service.submit_generation_job(db, profile, request)
 
-    return result
+
+@router.get(
+    "/scripts/{job_id}/status",
+    response_model=GenerationResponse,
+    summary="Poll script generation job status",
+    description="Check the status of a previously submitted script generation job.",
+    tags=["Scripts"],
+    responses={
+        200: {"description": "Job status retrieved successfully"},
+        404: {"description": "Job not found"},
+    },
+)
+async def get_generation_status(
+    db: DB,
+    job_id: str = Path(..., description="Job UUID to check."),
+) -> GenerationResponse:
+    from app.models.script_job import GeneratedScript, ScriptGenerationJob
+    
+    db_result = await db.execute(
+        select(ScriptGenerationJob).where(ScriptGenerationJob.id == job_id)
+    )
+    job = db_result.scalar_one_or_none()
+    if not job:
+        raise HTTPException(
+            status_code=404,
+            detail={"error": {"code": "JOB_NOT_FOUND", "message": "Job not found"}},
+        )
+
+    # Fetch profile slug
+    profile_result = await db.execute(
+        select(EnvironmentProfile).where(EnvironmentProfile.id == job.profile_id)
+    )
+    profile = profile_result.scalar_one()
+
+    resp = {
+        "job_id": job.id,
+        "status": job.status,
+        "profile_slug": profile.slug,
+        "target_os": job.target_os,
+    }
+
+    if job.status == "completed" and job.resolved_env:
+        from app.schemas.script import ResolvedPackage as ResponseResolvedPackage
+        from app.schemas.script import ScriptPreview
+        
+        resp["python_version"] = job.python_version
+        resp["cuda_version"] = job.cuda_version
+        resp["resolved_packages"] = [
+            ResponseResolvedPackage(
+                name=pkg["name"],
+                version=pkg["version"],
+                cuda_variant=pkg.get("cuda_variant"),
+            )
+            for pkg in job.resolved_env.get("packages", [])
+        ]
+        resp["warnings"] = job.resolved_env.get("warnings", [])
+        resp["download_url"] = f"/api/v1/scripts/{job.id}/download"
+
+        # Fetch scripts metadata
+        scripts_result = await db.execute(
+            select(GeneratedScript.filename, GeneratedScript.size_bytes)
+            .where(GeneratedScript.job_id == job.id)
+        )
+        scripts = scripts_result.all()
+        resp["scripts"] = [
+            ScriptPreview(
+                filename=s.filename,
+                content="",  # Content preview is omitted in status for efficiency
+                size_bytes=s.size_bytes,
+            )
+            for s in scripts
+        ]
+
+    return GenerationResponse(**resp)
 
 
 @router.get(
