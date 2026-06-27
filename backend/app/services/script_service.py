@@ -26,10 +26,6 @@ from app.models.script_job import GeneratedScript, ScriptGenerationJob
 from app.schemas.script import (
     GenerationRequest,
     GenerationResponse,
-    ScriptPreview,
-)
-from app.schemas.script import (
-    ResolvedPackage as ResponseResolvedPackage,
 )
 from app.templates.engine import TemplateRenderer
 from app.templates.models import TemplateContext
@@ -162,7 +158,7 @@ async def submit_generation_job(
         status="pending",
     )
     db.add(job)
-    await db.flush()
+    await db.commit()
 
     # Dispatch Celery task
     from app.worker import generate_scripts_task
@@ -201,8 +197,15 @@ async def execute_generation_job(
         await db.execute(select(ScriptGenerationJob).where(ScriptGenerationJob.id == job_id))
     ).scalar_one_or_none()
 
-    if not profile or not job:
-        return  # Data deleted before task started
+    if not job:
+        return  # Job deleted before task started
+
+    if not profile:
+        job.status = "failed"
+        job.error = "Profile deleted before generation started"
+        job.completed_at = datetime.now(UTC)
+        await db.commit()
+        return
 
     job.status = "processing"
     await db.commit()
@@ -266,7 +269,13 @@ async def execute_generation_job(
 
     except Exception as exc:
         _logger.exception("Background script generation failed for job %s", job_id)
-        job.status = "failed"
-        job.error = str(exc)
-        job.completed_at = datetime.now(UTC)
-        await db.commit()
+        await db.rollback()
+
+        job = (
+            await db.execute(select(ScriptGenerationJob).where(ScriptGenerationJob.id == job_id))
+        ).scalar_one_or_none()
+        if job:
+            job.status = "failed"
+            job.error = str(exc)
+            job.completed_at = datetime.now(UTC)
+            await db.commit()

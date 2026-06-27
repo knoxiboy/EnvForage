@@ -161,24 +161,24 @@ class GenerationResponse(BaseModel):
     )
 
     python_version: str | None = Field(
-        None,
+        default=None,
         description="Resolved Python version.",
         examples=["3.11"],
     )
 
     cuda_version: str | None = Field(
-        None,
+        default=None,
         description="Resolved CUDA version.",
         examples=["12.1"],
     )
 
     resolved_packages: list[ResolvedPackage] | None = Field(
-        None,
+        default=None,
         description="Packages resolved during compatibility validation.",
     )
 
     scripts: list[ScriptPreview] | None = Field(
-        None,
+        default=None,
         description="Generated script previews.",
     )
 
@@ -189,9 +189,15 @@ class GenerationResponse(BaseModel):
     )
 
     download_url: str | None = Field(
-        None,
+        default=None,
         description="URL used to download the generated script bundle.",
         examples=["/api/v1/scripts/550e8400/download"],
+    )
+
+    error_message: str | None = Field(
+        default=None,
+        description="Sanitized failure reason for failed jobs.",
+        examples=["Profile not compatible with target OS"],
     )
 
 
